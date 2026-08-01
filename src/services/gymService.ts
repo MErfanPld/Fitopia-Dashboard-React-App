@@ -51,8 +51,16 @@ export const gymService = {
    * Update free-editable fields
    */
   async updateGym(gymId: number | string, data: GymUpdatePayload): Promise<any> {
-    const response = await api.patch(`/gym-panel/gyms/${gymId}/update/`, data);
-    return response.data;
+    try {
+      const response = await api.patch(`/gym-panel/gyms/${gymId}/update/`, data);
+      return response.data;
+    } catch (err: any) {
+      if (err.response?.status === 405) {
+        const response = await api.put(`/gym-panel/gyms/${gymId}/update/`, data);
+        return response.data;
+      }
+      throw err;
+    }
   },
 
   /**

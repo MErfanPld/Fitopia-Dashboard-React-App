@@ -6,6 +6,7 @@ import { Modal } from '../components/common/Modal';
 import { FormField } from '../components/common/FormField';
 import ticketService, { GymChangeRequest, GymTicketMessage } from '../services/ticketService';
 import gymService from '../services/gymService';
+import { parseApiErrorMessage } from '../utils/errorUtils';
 import {
   MessageSquare,
   Send,
@@ -103,7 +104,7 @@ export const TicketsPage: React.FC = () => {
       });
     } catch (err: any) {
       console.error('Failed to send reply:', err);
-      alert(err.message || 'خطا در ارسال پاسخ.');
+      alert(parseApiErrorMessage(err, 'خطا در ارسال پاسخ.'));
     } finally {
       setIsSendingReply(false);
     }
@@ -131,7 +132,7 @@ export const TicketsPage: React.FC = () => {
       alert('درخواست جدید با موفقیت ثبت شد.');
     } catch (err: any) {
       console.error('Failed to submit request:', err);
-      alert(err.message || 'خطا در ثبت درخواست.');
+      alert(parseApiErrorMessage(err, 'خطا در ثبت درخواست.'));
     } finally {
       setIsSubmittingRequest(false);
     }

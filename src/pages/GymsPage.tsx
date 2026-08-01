@@ -8,6 +8,7 @@ import { FormField } from '../components/common/FormField';
 import { GymStaffAccess } from '../types';
 import gymService from '../services/gymService';
 import coachService, { GymCoach } from '../services/coachService';
+import { parseApiErrorMessage } from '../utils/errorUtils';
 import {
   Building2,
   Plus,
@@ -53,6 +54,7 @@ export const GymsPage: React.FC = () => {
   });
   const [isUpdatingGym, setIsUpdatingGym] = useState(false);
   const [gymSuccessMessage, setGymSuccessMessage] = useState<string | null>(null);
+  const [gymModalError, setGymModalError] = useState<string | null>(null);
 
   // Coaches state
   const [coaches, setCoaches] = useState<GymCoach[]>([]);
@@ -137,6 +139,7 @@ export const GymsPage: React.FC = () => {
       instagram: '',
     });
     setGymSuccessMessage(null);
+    setGymModalError(null);
   };
 
   // Handle Gym Edit Form Submit
@@ -144,9 +147,10 @@ export const GymsPage: React.FC = () => {
     e.preventDefault();
     if (!editingGym) return;
 
-    const gymId = editingGym.gym || editingGym.id;
+    const gymId = editingGym.gym ?? (editingGym as any).gym_id ?? editingGym.id;
     setIsUpdatingGym(true);
     setGymSuccessMessage(null);
+    setGymModalError(null);
 
     try {
       const messages: string[] = [];
@@ -193,7 +197,8 @@ export const GymsPage: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Failed to update gym:', err);
-      alert(err.message || 'خطا در بروزرسانی مشخصات باشگاه.');
+      const errMsg = parseApiErrorMessage(err, 'خطا در بروزرسانی مشخصات باشگاه.');
+      setGymModalError(errMsg);
     } finally {
       setIsUpdatingGym(false);
     }
@@ -522,6 +527,12 @@ export const GymsPage: React.FC = () => {
             {gymSuccessMessage && (
               <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-400">
                 {gymSuccessMessage}
+              </div>
+            )}
+
+            {gymModalError && (
+              <div className="p-3.5 bg-red-500/10 border border-red-500/30 rounded-xl text-xs font-bold text-red-400">
+                {gymModalError}
               </div>
             )}
 

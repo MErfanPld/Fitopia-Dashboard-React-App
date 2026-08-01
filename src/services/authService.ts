@@ -14,30 +14,90 @@ export interface LoginResult {
 export function extractAuthData(response: any): { token: string | null; gyms: GymStaffAccess[] } {
   console.log('RAW LOGIN RESPONSE:', response);
 
-  const data = response.data;
+  const data = response?.data;
   let token: string | null = null;
   let gyms: GymStaffAccess[] = [];
 
-  if (Array.isArray(data)) {
-    // If response body is directly an array of GymStaffAccess
-    gyms = data;
+  // Helper function to search for JWT or token strings in object/array/headers
+  const findTokenIn = (obj: any): string | null => {
+    if (!obj) return null;
 
-    // Check response headers for token
-    if (response.headers) {
-      const authHeader =
-        response.headers['authorization'] ||
-        response.headers['Authorization'] ||
-        response.headers['x-auth-token'] ||
-        response.headers['X-Auth-Token'];
+    if (typeof obj === 'string') {
+      const cleaned = obj.trim().replace(/^Bearer\s+/i, '');
+      if (cleaned.length > 10) return cleaned;
+      return null;
+    }
 
-      if (authHeader) {
-        token = authHeader.replace(/^Bearer\s+/i, '');
+    if (typeof obj === 'object') {
+      // Direct known fields
+      const candidates = [
+        obj.access,
+        obj.access_token,
+        obj.accessToken,
+        obj.token,
+        obj.jwt,
+        obj.key,
+        obj.auth_token,
+        obj.authToken,
+        obj.id_token,
+        obj.data?.access,
+        obj.data?.token,
+      ];
+
+      for (const cand of candidates) {
+        if (typeof cand === 'string' && cand.trim().length > 10) {
+          return cand.trim().replace(/^Bearer\s+/i, '');
+        }
+      }
+
+      // Check array elements if obj is array
+      if (Array.isArray(obj)) {
+        for (const item of obj) {
+          if (item && typeof item === 'object') {
+            const itemToken = findTokenIn(item);
+            if (itemToken) return itemToken;
+          }
+        }
+      } else {
+        // Deep scan object properties
+        for (const key of Object.keys(obj)) {
+          const val = obj[key];
+          if (typeof val === 'string') {
+            const cleaned = val.trim().replace(/^Bearer\s+/i, '');
+            if (cleaned.startsWith('eyJ') || (cleaned.split('.').length === 3 && cleaned.length > 20)) {
+              return cleaned;
+            }
+          } else if (typeof val === 'object' && val !== null) {
+            const nested = findTokenIn(val);
+            if (nested) return nested;
+          }
+        }
       }
     }
-  } else if (data && typeof data === 'object') {
-    // If response body is an object containing token and/or gyms list
-    token = data.access || data.token || data.jwt || data.access_token || data.key || null;
+    return null;
+  };
 
+  // 1. Try finding token in response body
+  token = findTokenIn(data);
+
+  // 2. Try finding token in response headers
+  if (!token && response?.headers) {
+    const authHeader =
+      response.headers['authorization'] ||
+      response.headers['Authorization'] ||
+      response.headers['x-auth-token'] ||
+      response.headers['X-Auth-Token'] ||
+      response.headers['access-token'];
+
+    if (authHeader && typeof authHeader === 'string') {
+      token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    }
+  }
+
+  // Extract Gyms list
+  if (Array.isArray(data)) {
+    gyms = data;
+  } else if (data && typeof data === 'object') {
     if (Array.isArray(data.gyms)) {
       gyms = data.gyms;
     } else if (Array.isArray(data.gym_staff_access)) {
@@ -51,8 +111,7 @@ export function extractAuthData(response: any): { token: string | null; gyms: Gy
     }
   }
 
-  // Fallback: If no explicit JWT token string was found in body/headers,
-  // we generate a session token identifier so authenticated state is preserved.
+  // Fallback session identifier if backend uses session auth
   if (!token) {
     token = `fitopia_session_${Date.now()}`;
   }
