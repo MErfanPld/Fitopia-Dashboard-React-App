@@ -53,6 +53,7 @@ export const GymsPage: React.FC = () => {
     instagram: '',
   });
   const [isUpdatingGym, setIsUpdatingGym] = useState(false);
+  const [loadingGymDetail, setLoadingGymDetail] = useState(false);
   const [gymSuccessMessage, setGymSuccessMessage] = useState<string | null>(null);
   const [gymModalError, setGymModalError] = useState<string | null>(null);
 
@@ -124,12 +125,19 @@ export const GymsPage: React.FC = () => {
     }
   }, [selectedGymId, activePageTab]);
 
-  // Open Edit Gym Modal
-  const openEditGymModal = (gym: GymStaffAccess) => {
+  // Open Edit Gym Modal and fetch full details from API
+  const openEditGymModal = async (gym: GymStaffAccess) => {
     setEditingGym(gym);
+    setLoadingGymDetail(true);
+    setGymSuccessMessage(null);
+    setGymModalError(null);
+
+    const gymId = gym.gym ?? (gym as any).gym_id ?? gym.id;
+
+    // Set fallback initial data
     setEditingGymData({
       name: gym.gym_name || '',
-      address: '',
+      address: gym.gym_address || '',
       latitude: '',
       longitude: '',
       description: '',
@@ -138,8 +146,27 @@ export const GymsPage: React.FC = () => {
       telegram: '',
       instagram: '',
     });
-    setGymSuccessMessage(null);
-    setGymModalError(null);
+
+    try {
+      const detail = await gymService.getGymDetail(gymId);
+      if (detail && typeof detail === 'object') {
+        setEditingGymData({
+          name: detail.name || detail.gym_name || gym.gym_name || '',
+          address: detail.address || detail.gym_address || gym.gym_address || '',
+          latitude: detail.latitude != null ? String(detail.latitude) : '',
+          longitude: detail.longitude != null ? String(detail.longitude) : '',
+          description: detail.description || '',
+          phone: detail.phone || '',
+          whatsapp: detail.whatsapp || '',
+          telegram: detail.telegram || '',
+          instagram: detail.instagram || '',
+        });
+      }
+    } catch (err) {
+      console.warn('Could not fetch gym detail from API:', err);
+    } finally {
+      setLoadingGymDetail(false);
+    }
   };
 
   // Handle Gym Edit Form Submit
@@ -155,25 +182,23 @@ export const GymsPage: React.FC = () => {
     try {
       const messages: string[] = [];
 
-      // Check if free-editable fields are filled/changed
+      // Update free-editable fields (bio, phone, social links)
       const freePayload: Record<string, any> = {};
-      if (editingGymData.description) freePayload.description = editingGymData.description;
-      if (editingGymData.phone) freePayload.phone = editingGymData.phone;
-      if (editingGymData.whatsapp) freePayload.whatsapp = editingGymData.whatsapp;
-      if (editingGymData.telegram) freePayload.telegram = editingGymData.telegram;
-      if (editingGymData.instagram) freePayload.instagram = editingGymData.instagram;
+      if (editingGymData.description?.trim()) freePayload.description = editingGymData.description.trim();
+      if (editingGymData.phone?.trim()) freePayload.phone = editingGymData.phone.trim();
+      if (editingGymData.whatsapp?.trim()) freePayload.whatsapp = editingGymData.whatsapp.trim();
+      if (editingGymData.telegram?.trim()) freePayload.telegram = editingGymData.telegram.trim();
+      if (editingGymData.instagram?.trim()) freePayload.instagram = editingGymData.instagram.trim();
 
-      if (Object.keys(freePayload).length > 0) {
-        await gymService.updateGym(gymId, freePayload);
-        messages.push('مشخصات تکمیلی باشگاه به‌روزرسانی شد.');
-      }
+      await gymService.updateGym(gymId, freePayload);
+      messages.push('مشخصات تکمیلی باشگاه با موفقیت به‌روزرسانی شد.');
 
-      // Check if restricted fields (name, address, location) are entered
+      // Check if restricted fields (name, address, location) are entered or modified
       const restrictedPayload: Record<string, any> = {};
       if (editingGymData.name && editingGymData.name !== editingGym.gym_name) {
         restrictedPayload.name = editingGymData.name;
       }
-      if (editingGymData.address) {
+      if (editingGymData.address && editingGymData.address !== editingGym.gym_address) {
         restrictedPayload.address = editingGymData.address;
       }
       if (editingGymData.latitude && editingGymData.longitude) {
@@ -186,15 +211,11 @@ export const GymsPage: React.FC = () => {
         messages.push('درخواست تغییر اطلاعات اصلی ثبت شد و در انتظار بررسی مدیریت فیتوپیا است.');
       }
 
-      if (messages.length === 0) {
-        setGymSuccessMessage('هیچ تغییری اعمال نشده است.');
-      } else {
-        setGymSuccessMessage(messages.join(' '));
-        setTimeout(() => {
-          setEditingGym(null);
-          fetchGyms();
-        }, 2000);
-      }
+      setGymSuccessMessage(messages.join(' '));
+      setTimeout(() => {
+        setEditingGym(null);
+        fetchGyms();
+      }, 1800);
     } catch (err: any) {
       console.error('Failed to update gym:', err);
       const errMsg = parseApiErrorMessage(err, 'خطا در بروزرسانی مشخصات باشگاه.');
@@ -523,18 +544,24 @@ export const GymsPage: React.FC = () => {
           title={`ویرایش مشخصات باشگاه ${editingGym.gym_name}`}
           maxWidth="xl"
         >
-          <form onSubmit={handleGymEditSubmit} className="space-y-4">
-            {gymSuccessMessage && (
-              <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-400">
-                {gymSuccessMessage}
-              </div>
-            )}
+          {loadingGymDetail ? (
+            <div className="p-8 text-center text-slate-400 text-xs flex flex-col items-center gap-3">
+              <RefreshCw className="w-6 h-6 text-[#FF7A1A] animate-spin" />
+              <span>در حال دریافت اطلاعات کامل باشگاه از سرور...</span>
+            </div>
+          ) : (
+            <form onSubmit={handleGymEditSubmit} className="space-y-4">
+              {gymSuccessMessage && (
+                <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-400">
+                  {gymSuccessMessage}
+                </div>
+              )}
 
-            {gymModalError && (
-              <div className="p-3.5 bg-red-500/10 border border-red-500/30 rounded-xl text-xs font-bold text-red-400">
-                {gymModalError}
-              </div>
-            )}
+              {gymModalError && (
+                <div className="p-3.5 bg-red-500/10 border border-red-500/30 rounded-xl text-xs font-bold text-red-400">
+                  {gymModalError}
+                </div>
+              )}
 
             {/* Free-editable fields section */}
             <div className="space-y-3 p-3.5 bg-[#121212] border border-[#242424] rounded-2xl">
@@ -633,6 +660,7 @@ export const GymsPage: React.FC = () => {
               </button>
             </div>
           </form>
+        )}
         </Modal>
       )}
 

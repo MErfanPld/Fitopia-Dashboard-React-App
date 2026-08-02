@@ -110,6 +110,19 @@ export const TicketsPage: React.FC = () => {
     }
   };
 
+  // Status transition handler for change requests
+  const handleStatusChange = async (status: 'pending' | 'approved' | 'rejected') => {
+    if (!viewingTicket || !selectedGymId) return;
+    try {
+      const note = status === 'rejected' ? 'اطلاعات وارد شده نامعتبر یا نیازمند بازبینی مجدد است.' : undefined;
+      const updated = await ticketService.updateTicketStatus(selectedGymId, viewingTicket.id, status, note);
+      setViewingTicket((prev) => (prev ? { ...prev, ...updated } : null));
+      fetchTickets();
+    } catch (err: any) {
+      console.error('Failed to update status:', err);
+    }
+  };
+
   // Submit New Change Request / Ticket
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -323,8 +336,41 @@ export const TicketsPage: React.FC = () => {
                 </span>
               </div>
 
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => handleStatusChange('pending')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                    viewingTicket.status === 'pending'
+                      ? 'bg-amber-500 text-slate-950 font-extrabold'
+                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20'
+                  }`}
+                >
+                  در حال بررسی
+                </button>
+                <button
+                  onClick={() => handleStatusChange('approved')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                    viewingTicket.status === 'approved'
+                      ? 'bg-emerald-500 text-slate-950 font-extrabold'
+                      : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20'
+                  }`}
+                >
+                  تایید درخواست
+                </button>
+                <button
+                  onClick={() => handleStatusChange('rejected')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                    viewingTicket.status === 'rejected'
+                      ? 'bg-red-500 text-white font-extrabold'
+                      : 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'
+                  }`}
+                >
+                  رد درخواست
+                </button>
+              </div>
+
               {viewingTicket.admin_note && (
-                <div className="p-2 bg-[#222] border border-[#333] rounded-xl text-slate-300 text-[11px]">
+                <div className="w-full p-2 bg-[#222] border border-[#333] rounded-xl text-slate-300 text-[11px]">
                   <strong className="text-[#FF7A1A]">یادداشت پشتیبانی: </strong>
                   {viewingTicket.admin_note}
                 </div>

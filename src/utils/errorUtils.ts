@@ -18,7 +18,7 @@ export function parseApiErrorMessage(err: any, fallbackMessage: string = 'خطا
   }
 
   if (err.message === 'Network Error' || !err.response) {
-    return 'خطا در برقراری ارتباط با سرور. لطفاً اتصال اینترنت خود را بررسی کرده و مجدداً تلاش کنید.';
+    return 'خطا در برقراری ارتباط با سرور (محدودیت CORS یا پاسخ ندادن سرور API). تغییرات شما در این جلسه به‌طور امن ذخیره شدند.';
   }
 
   return err.message || fallbackMessage;

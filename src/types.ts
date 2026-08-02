@@ -2,6 +2,7 @@ export interface GymStaffAccess {
   id: number;
   gym: number;
   gym_name: string;
+  gym_address?: string;
   role: 'owner' | 'staff' | string;
 }
 
