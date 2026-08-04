@@ -117,7 +117,15 @@ export const TicketsPage: React.FC = () => {
       const note = status === 'rejected' ? 'اطلاعات وارد شده نامعتبر یا نیازمند بازبینی مجدد است.' : undefined;
       const updated = await ticketService.updateTicketStatus(selectedGymId, viewingTicket.id, status, note);
       setViewingTicket((prev) => (prev ? { ...prev, ...updated } : null));
-      fetchTickets();
+      await fetchTickets();
+      if (status === 'approved') {
+        try {
+          await gymService.getGymDetail(selectedGymId);
+          await gymService.getGyms();
+        } catch (e) {
+          // ignore
+        }
+      }
     } catch (err: any) {
       console.error('Failed to update status:', err);
     }

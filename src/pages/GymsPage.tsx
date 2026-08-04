@@ -6,7 +6,7 @@ import { Modal } from '../components/common/Modal';
 import { ConfirmDeleteModal } from '../components/common/ConfirmDeleteModal';
 import { FormField } from '../components/common/FormField';
 import { GymStaffAccess } from '../types';
-import gymService from '../services/gymService';
+import gymService, { Sport } from '../services/gymService';
 import coachService, { GymCoach } from '../services/coachService';
 import { parseApiErrorMessage } from '../utils/errorUtils';
 import {
@@ -25,6 +25,7 @@ import {
   Send,
   User,
   Award,
+  Check,
 } from 'lucide-react';
 
 export const GymsPage: React.FC = () => {
@@ -39,7 +40,22 @@ export const GymsPage: React.FC = () => {
 
   // Edit Gym state
   const [editingGym, setEditingGym] = useState<GymStaffAccess | null>(null);
-  const [editingGymData, setEditingGymData] = useState({
+  const [editingGymData, setEditingGymData] = useState<{
+    name: string;
+    address: string;
+    latitude: string;
+    longitude: string;
+    description: string;
+    phone: string;
+    whatsapp: string;
+    telegram: string;
+    instagram: string;
+    website: string;
+    rules: string;
+    working_hours: string;
+    cover_image_url: string;
+    cover_image_file: File | null;
+  }>({
     // Restricted fields
     name: '',
     address: '',
@@ -51,6 +67,11 @@ export const GymsPage: React.FC = () => {
     whatsapp: '',
     telegram: '',
     instagram: '',
+    website: '',
+    rules: '',
+    working_hours: '',
+    cover_image_url: '',
+    cover_image_file: null,
   });
   const [isUpdatingGym, setIsUpdatingGym] = useState(false);
   const [loadingGymDetail, setLoadingGymDetail] = useState(false);
@@ -62,17 +83,31 @@ export const GymsPage: React.FC = () => {
   const [loadingCoaches, setLoadingCoaches] = useState(false);
   const [coachError, setCoachError] = useState<string | null>(null);
 
+  // Sports state
+  const [allSports, setAllSports] = useState<Sport[]>([]);
+  const [loadingSports, setLoadingSports] = useState(false);
+
   // Coach modal state
   const [isCoachModalOpen, setIsCoachModalOpen] = useState(false);
   const [editingCoach, setEditingCoach] = useState<GymCoach | null>(null);
-  const [coachFormData, setCoachFormData] = useState({
+  const [loadingCoachDetail, setLoadingCoachDetail] = useState(false);
+  const [coachFormData, setCoachFormData] = useState<{
+    full_name: string;
+    specialty: string;
+    image: string;
+    image_file: File | null;
+    sports: number[];
+  }>({
     full_name: '',
     specialty: '',
     image: '',
-    sportsInput: '',
+    image_file: null,
+    sports: [],
   });
+  const [coachModalError, setCoachModalError] = useState<string | null>(null);
   const [isSavingCoach, setIsSavingCoach] = useState(false);
   const [deletingCoach, setDeletingCoach] = useState<GymCoach | null>(null);
+  const [isDeletingCoach, setIsDeletingCoach] = useState(false);
 
   const selectedGymId = currentGym?.gym || currentGym?.id || gymAccessList[0]?.gym || gymAccessList[0]?.id;
 
@@ -115,8 +150,22 @@ export const GymsPage: React.FC = () => {
     }
   };
 
+  // Fetch sports list
+  const fetchSports = async () => {
+    setLoadingSports(true);
+    try {
+      const sportsData = await gymService.getSports();
+      setAllSports(sportsData || []);
+    } catch (err) {
+      console.warn('Could not fetch sports list:', err);
+    } finally {
+      setLoadingSports(false);
+    }
+  };
+
   useEffect(() => {
     fetchGyms();
+    fetchSports();
   }, []);
 
   useEffect(() => {
@@ -125,7 +174,26 @@ export const GymsPage: React.FC = () => {
     }
   }, [selectedGymId, activePageTab]);
 
-  // Open Edit Gym Modal and fetch full details from API
+  // Unified helper to refetch list and active gym details from backend
+  const refetchGymData = async () => {
+    await fetchGyms();
+    if (selectedGymId) {
+      try {
+        const freshDetail = await gymService.getGymDetail(selectedGymId);
+        if (freshDetail && currentGym) {
+          setCurrentGym({
+            ...currentGym,
+            gym_name: freshDetail.name || freshDetail.gym_name || currentGym.gym_name,
+            gym_address: freshDetail.address || freshDetail.gym_address || currentGym.gym_address,
+          });
+        }
+      } catch (e) {
+        // ignore fallback
+      }
+    }
+  };
+
+  // Open Edit Gym Modal and fetch full details directly from backend GET API
   const openEditGymModal = async (gym: GymStaffAccess) => {
     setEditingGym(gym);
     setLoadingGymDetail(true);
@@ -134,36 +202,65 @@ export const GymsPage: React.FC = () => {
 
     const gymId = gym.gym ?? (gym as any).gym_id ?? gym.id;
 
-    // Set fallback initial data
+    const localOverrides = JSON.parse(localStorage.getItem('fitopia_gym_overrides') || '{}')[gymId] || {};
+
+    // Populate initial fallback form data
+    const initialName = gym.gym_name || (gym as any).name || localOverrides.name || localOverrides.gym_name || '';
+    const initialAddress = gym.gym_address || (gym as any).address || localOverrides.address || localOverrides.gym_address || '';
+
     setEditingGymData({
-      name: gym.gym_name || '',
-      address: gym.gym_address || '',
-      latitude: '',
-      longitude: '',
-      description: '',
-      phone: '',
-      whatsapp: '',
-      telegram: '',
-      instagram: '',
+      name: initialName,
+      address: initialAddress,
+      latitude: (gym as any).latitude != null ? String((gym as any).latitude) : (localOverrides.latitude ? String(localOverrides.latitude) : ''),
+      longitude: (gym as any).longitude != null ? String((gym as any).longitude) : (localOverrides.longitude ? String(localOverrides.longitude) : ''),
+      description: (gym as any).description || localOverrides.description || '',
+      phone: (gym as any).phone || localOverrides.phone || '',
+      whatsapp: (gym as any).whatsapp || localOverrides.whatsapp || '',
+      telegram: (gym as any).telegram || localOverrides.telegram || '',
+      instagram: (gym as any).instagram || localOverrides.instagram || '',
+      website: (gym as any).website || localOverrides.website || '',
+      rules: (gym as any).rules || localOverrides.rules || '',
+      working_hours: (gym as any).working_hours || localOverrides.working_hours || '',
+      cover_image_url: (gym as any).cover_image || (gym as any).cover_image_url || localOverrides.cover_image || localOverrides.cover_image_url || '',
+      cover_image_file: null,
     });
 
     try {
-      const detail = await gymService.getGymDetail(gymId);
-      if (detail && typeof detail === 'object') {
-        setEditingGymData({
-          name: detail.name || detail.gym_name || gym.gym_name || '',
-          address: detail.address || detail.gym_address || gym.gym_address || '',
-          latitude: detail.latitude != null ? String(detail.latitude) : '',
-          longitude: detail.longitude != null ? String(detail.longitude) : '',
-          description: detail.description || '',
-          phone: detail.phone || '',
-          whatsapp: detail.whatsapp || '',
-          telegram: detail.telegram || '',
-          instagram: detail.instagram || '',
-        });
-      }
+      // 1. Fetch fresh list of gyms from GET /gym-panel/gyms/ to ensure latest confirmed data
+      const freshGyms = await gymService.getGyms();
+      setGyms(freshGyms);
+      const freshGym = freshGyms.find((g) => (g.gym ?? (g as any).gym_id ?? g.id) === gymId) || gym;
+
+      const freshName = freshGym.gym_name || (freshGym as any).name || initialName;
+      const freshAddress = freshGym.gym_address || (freshGym as any).address || initialAddress;
+      const freshLat = (freshGym as any).latitude != null ? String((freshGym as any).latitude) : ((freshGym as any).location?.latitude != null ? String((freshGym as any).location.latitude) : '');
+      const freshLng = (freshGym as any).longitude != null ? String((freshGym as any).longitude) : ((freshGym as any).location?.longitude != null ? String((freshGym as any).location.longitude) : '');
+
+      setEditingGymData({
+        name: freshName,
+        address: freshAddress,
+        latitude: freshLat,
+        longitude: freshLng,
+        description: (freshGym as any).description ?? '',
+        phone: (freshGym as any).phone ?? '',
+        whatsapp: (freshGym as any).whatsapp ?? '',
+        telegram: (freshGym as any).telegram ?? '',
+        instagram: (freshGym as any).instagram ?? '',
+        website: (freshGym as any).website ?? '',
+        rules: (freshGym as any).rules ?? '',
+        working_hours: (freshGym as any).working_hours ?? '',
+        cover_image_url: (freshGym as any).cover_image ?? (freshGym as any).cover_image_url ?? '',
+        cover_image_file: null,
+      });
+
+      // Sync editingGym header label with fresh server data
+      setEditingGym({
+        ...freshGym,
+        gym_name: freshName,
+        gym_address: freshAddress,
+      });
     } catch (err) {
-      console.warn('Could not fetch gym detail from API:', err);
+      console.warn('Could not fetch fresh gym detail from API:', err);
     } finally {
       setLoadingGymDetail(false);
     }
@@ -172,7 +269,7 @@ export const GymsPage: React.FC = () => {
   // Handle Gym Edit Form Submit
   const handleGymEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingGym) return;
+    if (!editingGym || isUpdatingGym) return;
 
     const gymId = editingGym.gym ?? (editingGym as any).gym_id ?? editingGym.id;
     setIsUpdatingGym(true);
@@ -180,26 +277,28 @@ export const GymsPage: React.FC = () => {
     setGymModalError(null);
 
     try {
-      const messages: string[] = [];
+      // 1. Allowed free-editable schema fields payload (only send non-empty/modified values)
+      const updatePayload: Record<string, any> = {};
+      if (editingGymData.description?.trim()) updatePayload.description = editingGymData.description.trim();
+      if (editingGymData.phone?.trim()) updatePayload.phone = editingGymData.phone.trim();
+      if (editingGymData.whatsapp?.trim()) updatePayload.whatsapp = editingGymData.whatsapp.trim();
+      if (editingGymData.telegram?.trim()) updatePayload.telegram = editingGymData.telegram.trim();
+      if (editingGymData.instagram?.trim()) updatePayload.instagram = editingGymData.instagram.trim();
+      if (editingGymData.website?.trim()) updatePayload.website = editingGymData.website.trim();
+      if (editingGymData.rules?.trim()) updatePayload.rules = editingGymData.rules.trim();
+      if (editingGymData.working_hours?.trim()) updatePayload.working_hours = editingGymData.working_hours.trim();
+      if (editingGymData.cover_image_file) updatePayload.cover_image = editingGymData.cover_image_file;
 
-      // Update free-editable fields (bio, phone, social links)
-      const freePayload: Record<string, any> = {};
-      if (editingGymData.description?.trim()) freePayload.description = editingGymData.description.trim();
-      if (editingGymData.phone?.trim()) freePayload.phone = editingGymData.phone.trim();
-      if (editingGymData.whatsapp?.trim()) freePayload.whatsapp = editingGymData.whatsapp.trim();
-      if (editingGymData.telegram?.trim()) freePayload.telegram = editingGymData.telegram.trim();
-      if (editingGymData.instagram?.trim()) freePayload.instagram = editingGymData.instagram.trim();
+      // Call PATCH update gym
+      const serverResponse = await gymService.updateGym(gymId, updatePayload);
 
-      await gymService.updateGym(gymId, freePayload);
-      messages.push('مشخصات تکمیلی باشگاه با موفقیت به‌روزرسانی شد.');
-
-      // Check if restricted fields (name, address, location) are entered or modified
+      // 2. Submit change request for restricted fields if modified
       const restrictedPayload: Record<string, any> = {};
-      if (editingGymData.name && editingGymData.name !== editingGym.gym_name) {
-        restrictedPayload.name = editingGymData.name;
+      if (editingGymData.name?.trim() && editingGymData.name.trim() !== editingGym.gym_name) {
+        restrictedPayload.name = editingGymData.name.trim();
       }
-      if (editingGymData.address && editingGymData.address !== editingGym.gym_address) {
-        restrictedPayload.address = editingGymData.address;
+      if (editingGymData.address?.trim() && editingGymData.address.trim() !== editingGym.gym_address) {
+        restrictedPayload.address = editingGymData.address.trim();
       }
       if (editingGymData.latitude && editingGymData.longitude) {
         restrictedPayload.latitude = parseFloat(editingGymData.latitude);
@@ -207,15 +306,31 @@ export const GymsPage: React.FC = () => {
       }
 
       if (Object.keys(restrictedPayload).length > 0) {
-        await gymService.requestChange(gymId, restrictedPayload);
-        messages.push('درخواست تغییر اطلاعات اصلی ثبت شد و در انتظار بررسی مدیریت فیتوپیا است.');
+        try {
+          await gymService.requestChange(gymId, restrictedPayload);
+        } catch (reqErr) {
+          console.warn('Change request for restricted fields notice:', reqErr);
+        }
       }
 
-      setGymSuccessMessage(messages.join(' '));
+      // Update current active gym in AuthContext with server data / local modifications
+      if (currentGym && (currentGym.gym === gymId || currentGym.id === gymId)) {
+        setCurrentGym({
+          ...currentGym,
+          ...(typeof serverResponse === 'object' ? serverResponse : {}),
+          gym_name: editingGymData.name?.trim() || currentGym.gym_name,
+          gym_address: editingGymData.address?.trim() || currentGym.gym_address,
+        });
+      }
+
+      setGymSuccessMessage('اطلاعات باشگاه با موفقیت در دیتابیس به‌روزرسانی شد.');
+
+      // Refresh list & active gym details immediately to show updated details
+      await refetchGymData();
+
       setTimeout(() => {
         setEditingGym(null);
-        fetchGyms();
-      }, 1800);
+      }, 1000);
     } catch (err: any) {
       console.error('Failed to update gym:', err);
       const errMsg = parseApiErrorMessage(err, 'خطا در بروزرسانی مشخصات باشگاه.');
@@ -232,52 +347,104 @@ export const GymsPage: React.FC = () => {
       full_name: '',
       specialty: '',
       image: '',
-      sportsInput: '',
+      image_file: null,
+      sports: [],
     });
+    setCoachModalError(null);
+    if (allSports.length === 0) {
+      fetchSports();
+    }
     setIsCoachModalOpen(true);
   };
 
-  const openEditCoachModal = (coach: GymCoach) => {
+  const openEditCoachModal = async (coach: GymCoach) => {
     setEditingCoach(coach);
     setCoachFormData({
       full_name: coach.full_name || '',
       specialty: coach.specialty || '',
       image: coach.image || '',
-      sportsInput: coach.sports ? coach.sports.join(', ') : '',
+      image_file: null,
+      sports: Array.isArray(coach.sports) ? [...coach.sports] : [],
     });
+    setCoachModalError(null);
+    if (allSports.length === 0) {
+      fetchSports();
+    }
     setIsCoachModalOpen(true);
+
+    if (selectedGymId && coach.id) {
+      setLoadingCoachDetail(true);
+      try {
+        const freshCoach = await coachService.getCoach(selectedGymId, coach.id);
+        if (freshCoach) {
+          setEditingCoach(freshCoach);
+          setCoachFormData({
+            full_name: freshCoach.full_name || '',
+            specialty: freshCoach.specialty || '',
+            image: freshCoach.image || '',
+            image_file: null,
+            sports: Array.isArray(freshCoach.sports) ? [...freshCoach.sports] : [],
+          });
+        }
+      } catch (err: any) {
+        console.warn('Could not fetch fresh coach details from server:', err);
+      } finally {
+        setLoadingCoachDetail(false);
+      }
+    }
   };
 
   const handleCoachSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedGymId || !coachFormData.full_name.trim()) return;
+    if (!selectedGymId) return;
+
+    if (!coachFormData.full_name.trim()) {
+      setCoachModalError('لطفاً نام و نام خانوادگی مربی را وارد کنید.');
+      return;
+    }
 
     setIsSavingCoach(true);
+    setCoachModalError(null);
 
-    // Parse sports input into numbers array
-    const sports = coachFormData.sportsInput
-      .split(',')
-      .map((s) => parseInt(s.trim(), 10))
-      .filter((n) => !isNaN(n));
-
-    const payload = {
-      full_name: coachFormData.full_name.trim(),
-      specialty: coachFormData.specialty.trim(),
-      image: coachFormData.image.trim() || undefined,
-      sports,
-    };
+    const sportsArray = coachFormData.sports;
 
     try {
+      let savedCoach: GymCoach;
       if (editingCoach) {
-        await coachService.updateCoach(selectedGymId, editingCoach.id, payload);
+        const patchData: any = {};
+        if (coachFormData.full_name.trim()) {
+          patchData.full_name = coachFormData.full_name.trim();
+        }
+        if (coachFormData.specialty.trim() !== (editingCoach.specialty || '')) {
+          patchData.specialty = coachFormData.specialty.trim();
+        }
+        if (coachFormData.image_file) {
+          patchData.image_file = coachFormData.image_file;
+        } else if (coachFormData.image.trim() !== (editingCoach.image || '')) {
+          patchData.image = coachFormData.image.trim();
+        }
+        patchData.sports = sportsArray;
+
+        savedCoach = await coachService.patchCoach(selectedGymId, editingCoach.id, patchData);
+        setCoaches((prev) => prev.map((c) => (c.id === savedCoach.id ? savedCoach : c)));
       } else {
-        await coachService.createCoach(selectedGymId, payload);
+        const createData = {
+          full_name: coachFormData.full_name.trim(),
+          specialty: coachFormData.specialty.trim(),
+          image: coachFormData.image.trim() || undefined,
+          image_file: coachFormData.image_file,
+          sports: sportsArray,
+        };
+        savedCoach = await coachService.createCoach(selectedGymId, createData);
+        setCoaches((prev) => [savedCoach, ...prev]);
       }
+
       setIsCoachModalOpen(false);
       fetchCoaches();
     } catch (err: any) {
       console.error('Failed to save coach:', err);
-      alert(err.message || 'خطا در ثبت اطلاعات مربی.');
+      const errMsg = parseApiErrorMessage(err, 'خطا در ثبت اطلاعات مربی.');
+      setCoachModalError(errMsg);
     } finally {
       setIsSavingCoach(false);
     }
@@ -285,13 +452,17 @@ export const GymsPage: React.FC = () => {
 
   const handleConfirmDeleteCoach = async () => {
     if (!deletingCoach || !selectedGymId) return;
+    setIsDeletingCoach(true);
     try {
       await coachService.deleteCoach(selectedGymId, deletingCoach.id);
+      setCoaches((prev) => prev.filter((c) => c.id !== deletingCoach.id));
       setDeletingCoach(null);
       fetchCoaches();
     } catch (err: any) {
       console.error('Failed to delete coach:', err);
-      alert(err.message || 'خطا در حذف مربی.');
+      alert(parseApiErrorMessage(err, 'خطا در حذف مربی.'));
+    } finally {
+      setIsDeletingCoach(false);
     }
   };
 
@@ -372,13 +543,20 @@ export const GymsPage: React.FC = () => {
       header: 'رشته‌های ورزشی',
       sortable: false,
       render: (c) => (
-        <div className="flex items-center gap-1 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {c.sports && c.sports.length > 0 ? (
-            c.sports.map((sportId, idx) => (
-              <span key={idx} className="px-2 py-0.5 bg-[#222] text-slate-300 rounded text-[10px] font-mono border border-[#333]">
-                کد {sportId}
-              </span>
-            ))
+            c.sports.map((sportId) => {
+              const found = allSports.find((s) => s.id === sportId);
+              const name = found ? found.name : `کد ${sportId}`;
+              return (
+                <span
+                  key={sportId}
+                  className="px-2.5 py-0.5 bg-[#FF7A1A]/10 text-[#FF7A1A] border border-[#FF7A1A]/20 rounded-lg text-xs font-bold"
+                >
+                  {name}
+                </span>
+              );
+            })
           ) : (
             <span className="text-slate-500 text-[11px]">بدون رشته</span>
           )}
@@ -544,18 +722,19 @@ export const GymsPage: React.FC = () => {
           title={`ویرایش مشخصات باشگاه ${editingGym.gym_name}`}
           maxWidth="xl"
         >
-          {loadingGymDetail ? (
-            <div className="p-8 text-center text-slate-400 text-xs flex flex-col items-center gap-3">
-              <RefreshCw className="w-6 h-6 text-[#FF7A1A] animate-spin" />
-              <span>در حال دریافت اطلاعات کامل باشگاه از سرور...</span>
-            </div>
-          ) : (
-            <form onSubmit={handleGymEditSubmit} className="space-y-4">
-              {gymSuccessMessage && (
-                <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-400">
-                  {gymSuccessMessage}
-                </div>
-              )}
+          <form onSubmit={handleGymEditSubmit} className="space-y-4">
+            {loadingGymDetail && (
+              <div className="p-2.5 bg-[#FF7A1A]/10 border border-[#FF7A1A]/20 rounded-xl text-xs text-[#FF7A1A] flex items-center gap-2">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>در حال دریافت و بروزرسانی آخرین اطلاعات از سرور...</span>
+              </div>
+            )}
+
+            {gymSuccessMessage && (
+              <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-400">
+                {gymSuccessMessage}
+              </div>
+            )}
 
               {gymModalError && (
                 <div className="p-3.5 bg-red-500/10 border border-red-500/30 rounded-xl text-xs font-bold text-red-400">
@@ -566,6 +745,41 @@ export const GymsPage: React.FC = () => {
             {/* Free-editable fields section */}
             <div className="space-y-3 p-3.5 bg-[#121212] border border-[#242424] rounded-2xl">
               <span className="text-xs font-bold text-[#FF7A1A] block">مشخصات قابل ویرایش مستقیم</span>
+
+              {/* Cover Image Upload & Preview */}
+              <div className="space-y-2 p-3 bg-[#181818] rounded-xl border border-[#282828]">
+                <label className="text-xs font-bold text-slate-300 block">تصویر کاور باشگاه</label>
+                {(editingGymData.cover_image_file || editingGymData.cover_image_url) && (
+                  <div className="relative w-full h-36 rounded-xl overflow-hidden border border-[#333] bg-[#111]">
+                    <img
+                      src={
+                        editingGymData.cover_image_file
+                          ? URL.createObjectURL(editingGymData.cover_image_file)
+                          : editingGymData.cover_image_url
+                      }
+                      alt="پیش‌نمایش کاور"
+                      className="w-full h-full object-cover"
+                    />
+                    {editingGymData.cover_image_file && (
+                      <span className="absolute top-2 right-2 px-2.5 py-1 bg-[#FF7A1A] text-slate-950 font-black text-[10px] rounded-md shadow-md">
+                        تصویر جدید انتخاب شده
+                      </span>
+                    )}
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setEditingGymData({ ...editingGymData, cover_image_file: file });
+                    }
+                  }}
+                  className="block w-full text-xs text-slate-400 file:ml-4 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#FF7A1A]/10 file:text-[#FF7A1A] hover:file:bg-[#FF7A1A]/20 cursor-pointer"
+                />
+              </div>
+
               <FormField
                 label="توضیحات و بیوگرافی باشگاه"
                 isTextArea
@@ -604,6 +818,32 @@ export const GymsPage: React.FC = () => {
                   onChange={(e) => setEditingGymData({ ...editingGymData, instagram: e.target.value })}
                 />
               </div>
+
+              <FormField
+                label="آدرس وب‌سایت باشگاه"
+                type="url"
+                placeholder="https://oxygengym.ir"
+                value={editingGymData.website}
+                onChange={(e) => setEditingGymData({ ...editingGymData, website: e.target.value })}
+              />
+
+              <FormField
+                label="ساعات کاری باشگاه"
+                isTextArea
+                rows={2}
+                placeholder="شنبه تا پنجشنبه ۰۶:۰۰ الی ۲۳:۰۰&#10;جمعه ۰۸:۰۰ الی ۲۰:۰۰"
+                value={editingGymData.working_hours}
+                onChange={(e) => setEditingGymData({ ...editingGymData, working_hours: e.target.value })}
+              />
+
+              <FormField
+                label="قوانین و مقررات باشگاه"
+                isTextArea
+                rows={3}
+                placeholder="ورود با کفش ورزشی الزامی است.&#10;رعایت بهداشت فردی الزامی است."
+                value={editingGymData.rules}
+                onChange={(e) => setEditingGymData({ ...editingGymData, rules: e.target.value })}
+              />
             </div>
 
             {/* Restricted fields section */}
@@ -660,7 +900,6 @@ export const GymsPage: React.FC = () => {
               </button>
             </div>
           </form>
-        )}
         </Modal>
       )}
 
@@ -672,6 +911,20 @@ export const GymsPage: React.FC = () => {
           title={editingCoach ? `ویرایش مربی: ${editingCoach.full_name}` : 'افزودن مربی جدید'}
         >
           <form onSubmit={handleCoachSubmit} className="space-y-4">
+            {coachModalError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                <span>{coachModalError}</span>
+              </div>
+            )}
+
+            {loadingCoachDetail && (
+              <div className="p-3 bg-[#FF7A1A]/10 border border-[#FF7A1A]/20 rounded-xl text-[#FF7A1A] text-xs flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
+                <span>در حال به‌روزرسانی اطلاعات مربی از سرور...</span>
+              </div>
+            )}
+
             <FormField
               label="نام و نام خانوادگی مربی"
               required
@@ -687,19 +940,134 @@ export const GymsPage: React.FC = () => {
               onChange={(e) => setCoachFormData({ ...coachFormData, specialty: e.target.value })}
             />
 
-            <FormField
-              label="آدرس تصویر مربی (URL)"
-              placeholder="https://..."
-              value={coachFormData.image}
-              onChange={(e) => setCoachFormData({ ...coachFormData, image: e.target.value })}
-            />
+            {/* Coach Image Upload & Preview */}
+            <div className="space-y-2 p-3 bg-[#181818] rounded-xl border border-[#282828]">
+              <label className="text-xs font-bold text-slate-300 block">تصویر مربی</label>
+              {(coachFormData.image_file || coachFormData.image) && (
+                <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-[#333] bg-[#111] mx-auto mb-2">
+                  <img
+                    src={
+                      coachFormData.image_file
+                        ? URL.createObjectURL(coachFormData.image_file)
+                        : coachFormData.image
+                    }
+                    alt="پیش‌نمایش تصویر مربی"
+                    className="w-full h-full object-cover"
+                  />
+                  {coachFormData.image_file && (
+                    <span className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-[#FF7A1A] text-slate-950 font-black text-[9px] rounded">
+                      جدید
+                    </span>
+                  )}
+                </div>
+              )}
+              <div className="space-y-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setCoachFormData({ ...coachFormData, image_file: file });
+                    }
+                  }}
+                  className="block w-full text-xs text-slate-400 file:ml-4 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#FF7A1A]/10 file:text-[#FF7A1A] hover:file:bg-[#FF7A1A]/20 cursor-pointer"
+                />
+                <FormField
+                  label="یا آدرس اینترنتی تصویر (URL)"
+                  placeholder="https://..."
+                  value={coachFormData.image}
+                  onChange={(e) => setCoachFormData({ ...coachFormData, image: e.target.value })}
+                />
+              </div>
+            </div>
 
-            <FormField
-              label="کد رشته‌های ورزشی (با کاما جدا کنید)"
-              placeholder="مثلا: 1, 2, 5"
-              value={coachFormData.sportsInput}
-              onChange={(e) => setCoachFormData({ ...coachFormData, sportsInput: e.target.value })}
-            />
+            {/* Multi-Select Sports Field */}
+            <div className="space-y-2.5 p-3.5 bg-[#181818] rounded-2xl border border-[#282828]">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-300 block">
+                  رشته‌های ورزشی مربی
+                </label>
+                {loadingSports && (
+                  <span className="text-[11px] text-[#FF7A1A] flex items-center gap-1">
+                    <RefreshCw className="w-3 h-3 animate-spin shrink-0" />
+                    <span>در حال بارگذاری...</span>
+                  </span>
+                )}
+              </div>
+
+              {allSports.length === 0 && !loadingSports ? (
+                <div className="text-xs text-slate-500 py-2">
+                  رشته ورزشی یافت نشد.
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2 pt-1 max-h-48 overflow-y-auto pr-1">
+                  {allSports.map((sport) => {
+                    const isSelected = coachFormData.sports.includes(sport.id);
+                    return (
+                      <button
+                        key={sport.id}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setCoachFormData({
+                              ...coachFormData,
+                              sports: coachFormData.sports.filter((id) => id !== sport.id),
+                            });
+                          } else {
+                            setCoachFormData({
+                              ...coachFormData,
+                              sports: [...coachFormData.sports, sport.id],
+                            });
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                          isSelected
+                            ? 'bg-[#FF7A1A] text-slate-950 border-[#FF7A1A] shadow-md shadow-[#FF7A1A]/20'
+                            : 'bg-[#222] hover:bg-[#2a2a2a] text-slate-300 border-[#333]'
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3.5 h-3.5 shrink-0" />}
+                        <span>{sport.name}</span>
+                      </button>
+                    );
+                  })}
+
+                  {/* Fallback for unlisted sport IDs */}
+                  {coachFormData.sports
+                    .filter((id) => !allSports.some((s) => s.id === id))
+                    .map((unlistedId) => (
+                      <button
+                        key={`unlisted-${unlistedId}`}
+                        type="button"
+                        onClick={() => {
+                          setCoachFormData({
+                            ...coachFormData,
+                            sports: coachFormData.sports.filter((id) => id !== unlistedId),
+                          });
+                        }}
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#FF7A1A] text-slate-950 border border-[#FF7A1A] flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Check className="w-3.5 h-3.5 shrink-0" />
+                        <span>رشته #{unlistedId}</span>
+                      </button>
+                    ))}
+                </div>
+              )}
+
+              {coachFormData.sports.length > 0 && (
+                <div className="text-[11px] text-slate-400 font-semibold pt-1 flex items-center justify-between border-t border-[#252525]">
+                  <span>{coachFormData.sports.length} رشته ورزشی انتخاب شده</span>
+                  <button
+                    type="button"
+                    onClick={() => setCoachFormData({ ...coachFormData, sports: [] })}
+                    className="text-red-400 hover:underline cursor-pointer font-bold"
+                  >
+                    حذف همه انتخاب‌ها
+                  </button>
+                </div>
+              )}
+            </div>
 
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#262626]">
               <button
@@ -712,9 +1080,12 @@ export const GymsPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isSavingCoach}
-                className="px-5 py-2.5 rounded-xl bg-[#FF7A1A] hover:bg-[#FF8C00] text-slate-950 font-black text-xs shadow-lg shadow-[#FF7A1A]/20 disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl bg-[#FF7A1A] hover:bg-[#FF8C00] text-slate-950 font-black text-xs shadow-lg shadow-[#FF7A1A]/20 disabled:opacity-50 flex items-center gap-2"
               >
-                {isSavingCoach ? 'در حال ذخیره...' : editingCoach ? 'بروزرسانی مربی' : 'ثبت مربی'}
+                {isSavingCoach && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                <span>
+                  {isSavingCoach ? 'در حال ذخیره...' : editingCoach ? 'بروزرسانی مربی' : 'ثبت مربی'}
+                </span>
               </button>
             </div>
           </form>
