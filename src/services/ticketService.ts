@@ -155,6 +155,51 @@ export const ticketService = {
       };
     }
   },
+
+  /**
+   * Clear all notifications / change requests for a gym
+   */
+  async clearAllNotifications(gymId: number | string, changeRequests: GymChangeRequest[]): Promise<void> {
+    localStorage.removeItem(`fitopia_tickets_${gymId}`);
+
+    // Send delete requests to server for each change request item
+    const requests = changeRequests.map((cr) =>
+      api.delete(`/gym-panel/gyms/${gymId}/tickets/${cr.id}/`).catch((err) => {
+        console.warn(`Delete ticket ${cr.id} notice:`, err.message);
+      })
+    );
+
+    await Promise.all(requests);
+  },
+
+  /**
+   * Mark a notification/ticket as read on the server
+   */
+  async markAsRead(gymId: number | string, ticketId: number | string): Promise<boolean> {
+    try {
+      if (gymId && ticketId) {
+        await api.get(`/gym-panel/gyms/${gymId}/tickets/${ticketId}/`);
+      }
+      return true;
+    } catch (err: any) {
+      if (!err.response || err.message === 'Network Error') {
+        throw err;
+      }
+      return true;
+    }
+  },
+
+  /**
+   * Mark all unread tickets/notifications as read on the server
+   */
+  async markAllAsRead(gymId: number | string, unreadTicketIds: (number | string)[]): Promise<void> {
+    const promises = unreadTicketIds.map((id) =>
+      this.markAsRead(gymId, id).catch((e) => {
+        console.warn(`Failed to mark item ${id} as read:`, e);
+      })
+    );
+    await Promise.all(promises);
+  },
 };
 
 export default ticketService;

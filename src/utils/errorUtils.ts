@@ -23,3 +23,18 @@ export function parseApiErrorMessage(err: any, fallbackMessage: string = 'خطا
 
   return err.message || fallbackMessage;
 }
+
+export function parseApiFieldErrors(err: any): Record<string, string> {
+  const fieldErrors: Record<string, string> = {};
+  if (err?.response?.status === 400 && err.response.data && typeof err.response.data === 'object') {
+    const data = err.response.data;
+    for (const [key, val] of Object.entries(data)) {
+      if (Array.isArray(val)) {
+        fieldErrors[key] = val.map((v) => (typeof v === 'string' ? v : JSON.stringify(v))).join(', ');
+      } else if (typeof val === 'string') {
+        fieldErrors[key] = val;
+      }
+    }
+  }
+  return fieldErrors;
+}

@@ -33,8 +33,14 @@ export const LoginPage: React.FC = () => {
       const { gyms } = await authLogin(username, password);
       appLogin(username);
 
-      // Successfully logged in - redirect to dashboard
-      navigate('/dashboard');
+      // Successfully logged in - redirect to saved target if available, otherwise dashboard
+      const redirectTarget = localStorage.getItem('fitopia_redirect_target');
+      if (redirectTarget && redirectTarget !== '/login' && redirectTarget !== '/welcome') {
+        localStorage.removeItem('fitopia_redirect_target');
+        navigate(redirectTarget);
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       console.error('Login submit error:', err);
       setLocalError(err.message || 'خطا در برقراری ارتباط با سرور.');

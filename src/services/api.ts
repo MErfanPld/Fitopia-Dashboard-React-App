@@ -33,6 +33,8 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+let isRedirectingToWelcome = false;
+
 // Response interceptor to handle 401 Unauthorized responses safely
 api.interceptors.response.use(
   (response) => {
@@ -52,14 +54,28 @@ api.interceptors.response.use(
       console.warn('API returned 401 Unauthorized:', error.config?.url);
 
       const isAuthRequest = error.config?.url?.includes('/auth/');
-      if (!isAuthRequest && typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-        const storedToken = localStorage.getItem('fitopia_auth_token');
-        if (storedToken && !storedToken.startsWith('session_')) {
-          localStorage.removeItem('fitopia_auth_token');
-          localStorage.removeItem('fitopia_gym_access');
-          localStorage.removeItem('fitopia_current_gym');
-          window.location.href = '/login';
+      const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+
+      if (
+        !isAuthRequest &&
+        currentPath !== '/login' &&
+        currentPath !== '/welcome' &&
+        !isRedirectingToWelcome
+      ) {
+        isRedirectingToWelcome = true;
+
+        // Save current location so user can be restored after logging back in
+        if (currentPath && currentPath !== '/' && currentPath !== '/login' && currentPath !== '/welcome') {
+          localStorage.setItem('fitopia_redirect_target', currentPath);
         }
+
+        // Clear authentication tokens and cached gym data
+        localStorage.removeItem('fitopia_auth_token');
+        localStorage.removeItem('fitopia_gym_access');
+        localStorage.removeItem('fitopia_current_gym');
+
+        // Redirect to welcome/session expired page
+        window.location.href = '/welcome';
       }
     }
     return Promise.reject(error);
