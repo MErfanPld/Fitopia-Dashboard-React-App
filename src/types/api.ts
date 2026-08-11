@@ -1,0 +1,121 @@
+export type StaffRole = 'owner' | 'manager' | 'receptionist' | 'accountant' | 'coach' | 'staff';
+export type PermissionCode =
+  | 'customer.view' | 'customer.create' | 'customer.update' | 'customer.delete'
+  | 'course.view' | 'course.create' | 'course.update' | 'course.enroll'
+  | 'attendance.view' | 'attendance.create'
+  | 'finance.view' | 'finance.create' | 'finance.update' | 'finance.report' | 'finance.refund'
+  | 'employee.view' | 'employee.manage' | 'offering.manage';
+
+export const ROLE_DEFAULTS: Record<StaffRole, PermissionCode[]> = {
+  owner: ['customer.view','customer.create','customer.update','customer.delete','course.view','course.create','course.update','course.enroll','attendance.view','attendance.create','finance.view','finance.create','finance.update','finance.report','finance.refund','employee.view','employee.manage','offering.manage'],
+  manager: ['customer.view','customer.create','customer.update','course.view','course.create','course.update','course.enroll','attendance.view','attendance.create','finance.view','finance.create','finance.report','employee.view','offering.manage'],
+  receptionist: ['customer.view','customer.create','customer.update','course.view','course.enroll','attendance.view','attendance.create','finance.create'],
+  accountant: ['customer.view','finance.view','finance.create','finance.update','finance.report','finance.refund'],
+  coach: ['customer.view','course.view','course.update','attendance.view','attendance.create'],
+  staff: ['customer.view','attendance.view','attendance.create'],
+};
+
+export const ROLE_LABELS: Record<StaffRole, string> = {
+  owner: '\u0645\u0627\u0644\u06a9', manager: '\u0645\u062f\u06cc\u0631', receptionist: '\u067e\u0630\u06cc\u0631\u0634', accountant: '\u062d\u0633\u0627\u0628\u062f\u0627\u0631', coach: '\u0645\u0631\u0628\u06cc', staff: '\u06a9\u0627\u0631\u0645\u0646\u062f',
+};
+
+export const PERMISSION_LABELS: Record<PermissionCode, string> = {
+  'customer.view': '\u0645\u0634\u0627\u0647\u062f\u0647 \u0645\u0634\u062a\u0631\u06cc', 'customer.create': '\u0627\u06cc\u062c\u0627\u062f \u0645\u0634\u062a\u0631\u06cc', 'customer.update': '\u0648\u06cc\u0631\u0627\u06cc\u0634 \u0645\u0634\u062a\u0631\u06cc', 'customer.delete': '\u062d\u0630\u0641 \u0645\u0634\u062a\u0631\u06cc',
+  'course.view': '\u0645\u0634\u0627\u0647\u062f\u0647 \u062f\u0648\u0631\u0647', 'course.create': '\u0627\u06cc\u062c\u0627\u062f \u062f\u0648\u0631\u0647', 'course.update': '\u0648\u06cc\u0631\u0627\u06cc\u0634 \u062f\u0648\u0631\u0647', 'course.enroll': '\u062b\u0628\u062a\u200c\u0646\u0627\u0645 \u062f\u0631 \u062f\u0648\u0631\u0647',
+  'attendance.view': '\u0645\u0634\u0627\u0647\u062f\u0647 \u062d\u0636\u0648\u0631', 'attendance.create': '\u062b\u0628\u062a \u062d\u0636\u0648\u0631',
+  'finance.view': '\u0645\u0634\u0627\u0647\u062f\u0647 \u0645\u0627\u0644\u06cc', 'finance.create': '\u062b\u0628\u062a \u0645\u0627\u0644\u06cc', 'finance.update': '\u0648\u06cc\u0631\u0627\u06cc\u0634 \u0645\u0627\u0644\u06cc', 'finance.report': '\u06af\u0632\u0627\u0631\u0634 \u0645\u0627\u0644\u06cc', 'finance.refund': '\u0627\u0633\u062a\u0631\u062f\u0627\u062f',
+  'employee.view': '\u0645\u0634\u0627\u0647\u062f\u0647 \u06a9\u0627\u0631\u0645\u0646\u062f', 'employee.manage': '\u0645\u062f\u06cc\u0631\u06cc\u062a \u06a9\u0627\u0631\u0645\u0646\u062f', 'offering.manage': '\u0645\u062f\u06cc\u0631\u06cc\u062a \u0631\u0634\u062a\u0647\u200c\u0647\u0627',
+};
+
+export const ALL_PERMISSIONS = Object.keys(PERMISSION_LABELS) as PermissionCode[];
+
+export interface GymAccess { id: number; gym: number; gym_name: string; gym_address?: string; role: StaffRole | string; }
+export interface AuthUser { id: number; username?: string; phone_number?: string; full_name?: string; email?: string; is_staff_user?: boolean; [k: string]: unknown; }
+export interface LoginResponse { tokens: { access: string; refresh: string }; user: AuthUser; gyms: GymAccess[]; }
+
+export interface GymMember {
+  id: number; gym?: number; full_name: string; phone: string; sport?: number | null; sport_name?: string;
+  coach?: number | null; sessions_total?: number | null; sessions_remaining?: number | null;
+  sessions_used?: number | null; sessions_remaining_calc?: number | null; price_paid?: number | null;
+  join_date?: string; membership_status?: string; membership_type?: string; membership_start?: string | null;
+  membership_end?: string | null; notes?: string; is_active?: boolean; last_visit_at?: string | null;
+  photo?: string | null; source?: string;
+}
+export interface GymMemberInput {
+  full_name: string; phone: string; sport?: number | null; coach?: number | null;
+  sessions_total?: number | null; sessions_remaining?: number | null; price_paid?: number | null;
+  join_date?: string; membership_status?: string; membership_type?: string; notes?: string; is_active?: boolean;
+}
+
+export interface GymCoach { id: number; full_name: string; image?: string | null; specialty?: string; sports?: number[]; }
+export interface GymCoachInput { full_name: string; specialty?: string; sports?: number[]; image?: File | null; }
+
+export interface StaffEmployee {
+  id: number; user: number; username?: string; user_phone?: string; gym?: number;
+  role: StaffRole | string; is_active: boolean; start_date?: string | null; end_date?: string | null;
+  employee_number?: string; permission_codes?: string[]; created_at?: string;
+}
+export interface StaffEmployeeInput {
+  user?: number; role: StaffRole | string; is_active?: boolean;
+  start_date?: string | null; end_date?: string | null; employee_number?: string;
+}
+
+export interface GymOffering {
+  id: number; gym?: number; sport?: number | null; sport_name?: string; description?: string; coaches?: number[];
+  capacity?: number | null; single_session_price?: number | null; course_price?: number | null; monthly_price?: number | null;
+  duration_minutes?: number | null; skill_level?: string; gender_restriction?: string; is_active?: boolean;
+}
+export interface Course {
+  id: number; title: string; sport?: number | null; sport_name?: string; offering?: number | null; coach?: number | null;
+  description?: string; start_date?: string; end_date?: string; start_time?: string; end_time?: string;
+  capacity?: number | null; price?: number | null; status?: string; is_active?: boolean;
+  enrollment_count?: number; remaining_capacity?: number;
+}
+export interface GymVisit {
+  id: number; customer?: number | null; customer_name?: string; guest_name?: string; guest_phone?: string;
+  check_in_at?: string | null; check_out_at?: string | null; is_open?: boolean; method?: string; sport?: number | null;
+}
+export interface AttendanceStats { today_visits: number; currently_inside: number; month_visits: number; total_visits: number; }
+export interface FinanceTransaction {
+  id: number; type: string; category?: string; amount: number; date: string; description?: string;
+  payment_method?: string; status?: string; customer?: number | null; reference_number?: string;
+}
+export interface CustomerPayment {
+  id: number; customer: number; total_price: number; amount_paid: number; discount?: number;
+  remaining_balance?: number; description?: string; payment_method?: string; reference_number?: string; created_at?: string;
+}
+export interface Refund {
+  id: number; original_transaction: number; amount: number; reason?: string; status?: string;
+  created_at?: string; completed_at?: string | null;
+}
+export interface FinanceReport {
+  daily: { income: number; expense: number; net: number };
+  monthly: { income: number; expense: number; net: number };
+  income_by_category: { category: string; total: number }[];
+  outstanding_balances: { customer_id: number; customer_name: string; remaining: number; payment_id: number }[];
+}
+export interface SingleSession {
+  id: number; customer: number; sport?: number | null; price: number; status?: string;
+  purchased_at?: string; used_at?: string | null; expires_at?: string | null;
+}
+export interface AuditLog {
+  id: number; user?: number | null; action: string; object_type?: string; object_id?: string;
+  metadata?: Record<string, unknown>; created_at?: string;
+}
+export interface GymChangeRequest {
+  id: number; request_type: string; status: string; payload?: Record<string, unknown>;
+  admin_note?: string; created_at?: string; messages?: TicketMessage[];
+}
+export interface TicketMessage { id: number; sender_role: string; message: string; created_at: string; }
+export interface GymUpdatePayload {
+  description?: string; phone?: string; whatsapp?: string; telegram?: string;
+  instagram?: string; website?: string; rules?: string; working_hours?: string;
+}
+
+export function hasPermission(role: string | undefined, explicit: string[] | undefined, code: PermissionCode): boolean {
+  if (!role) return false;
+  if (role === 'owner') return true;
+  if (explicit && explicit.length > 0) return explicit.includes(code);
+  const d = ROLE_DEFAULTS[role as StaffRole];
+  return d ? d.includes(code) : false;
+}
