@@ -35,7 +35,7 @@ export const MembersPage: React.FC = () => {
     if (!gymId) return;
     setLoading(true); setError(null);
     try { setItems(await membersService.list(gymId)); }
-    catch (e: unknown) { setError(e instanceof Error ? e.message : 'دریافت اطلاعات با خطا مواجه شد.'); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : 'خطا در دریافت اطلاعات'); }
     finally { setLoading(false); }
   }, [gymId]);
 
@@ -58,7 +58,7 @@ export const MembersPage: React.FC = () => {
     if (!form.full_name.trim() || !form.phone.trim()) { showToast('نام و شماره تماس الزامی است.', 'warning'); return; }
     setSaving(true);
     try {
-      if (editing) { await membersService.update(gymId, editing.id, form); showToast('عضو بروزرسانی شد.', 'success'); }
+      if (editing) { await membersService.update(gymId, editing.id, form); showToast('عضو به‌روزرسانی شد.', 'success'); }
       else { await membersService.create(gymId, form); showToast('عضو جدید ثبت شد.', 'success'); }
       setModalOpen(false); load();
     } catch (e: unknown) { showToast(e instanceof Error ? e.message : 'خطا در ذخیره', 'danger'); }
@@ -72,10 +72,10 @@ export const MembersPage: React.FC = () => {
   };
 
   const columns: Column<GymMember>[] = useMemo(() => [
-    { key: 'full_name', header: 'نام', render: (r) => <span className="font-medium text-white">{r.full_name}</span> },
-    { key: 'phone', header: 'تلفن', render: (r) => <span className="flex items-center gap-1 text-slate-300 text-sm"><Phone className="w-3.5 h-3.5" />{r.phone}</span> },
+    { key: 'full_name', header: 'نام', render: (r) => <span className="font-medium text-ink">{r.full_name}</span> },
+    { key: 'phone', header: 'تلفن', render: (r) => <span className="flex items-center gap-1 text-muted text-sm"><Phone className="w-3.5 h-3.5" />{r.phone}</span> },
     { key: 'membership_status', header: 'وضعیت', render: (r) => <StatusBadge status={r.membership_status || (r.is_active ? 'active' : 'inactive')} /> },
-    { key: 'sessions_remaining', header: 'جلسات باقی', render: (r) => <span className="text-sm text-slate-300">{r.sessions_remaining_calc ?? r.sessions_remaining ?? '—'}</span> },
+    { key: 'sessions_remaining', header: 'جلسات باقی', render: (r) => <span className="text-sm text-muted">{r.sessions_remaining_calc ?? r.sessions_remaining ?? '—'}</span> },
   ], []);
 
   if (!hasGym) return <div className="space-y-6"><Header title="اعضا" /><NoGymSelected /></div>;
@@ -85,7 +85,7 @@ export const MembersPage: React.FC = () => {
     <div className="space-y-6">
       <Header title="مدیریت اعضا" subtitle="مشتریان باشگاه" onQuickAction={can('customer.create') ? openCreate : undefined} quickActionLabel={can('customer.create') ? 'عضو جدید' : undefined} />
       <div className="flex justify-end">
-        <button type="button" onClick={load} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-[#2A2A2A] text-slate-300 text-sm"><RefreshCw className="w-4 h-4" />بروزرسانی</button>
+        <button type="button" onClick={load} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-muted text-sm"><RefreshCw className="w-4 h-4" />به‌روزرسانی</button>
       </div>
       {loading && <LoadingBlock />}
       {error && <ErrorBlock message={error} onRetry={load} />}
@@ -93,9 +93,9 @@ export const MembersPage: React.FC = () => {
       {!loading && !error && items.length > 0 && (
         <DataTable columns={columns} data={items} searchKeys={['full_name', 'phone']} actions={(r) => (
           <div className="flex items-center gap-1">
-            <button type="button" onClick={() => setDetail(r)} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#222]"><Eye className="w-4 h-4" /></button>
-            {can('customer.update') && <button type="button" onClick={() => openEdit(r)} className="p-1.5 rounded-lg text-slate-400 hover:text-[#FF9D4D] hover:bg-[#222]"><Edit3 className="w-4 h-4" /></button>}
-            {can('customer.delete') && <button type="button" onClick={() => setDeleting(r)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-[#222]"><Trash2 className="w-4 h-4" /></button>}
+            <button type="button" onClick={() => setDetail(r)} className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-surface-elevated"><Eye className="w-4 h-4" /></button>
+            {can('customer.update') && <button type="button" onClick={() => openEdit(r)} className="p-1.5 rounded-lg text-muted hover:text-primary-hover hover:bg-surface-elevated"><Edit3 className="w-4 h-4" /></button>}
+            {can('customer.delete') && <button type="button" onClick={() => setDeleting(r)} className="p-1.5 rounded-lg text-muted hover:text-danger-text hover:bg-surface-elevated"><Trash2 className="w-4 h-4" /></button>}
           </div>
         )} />
       )}
@@ -109,20 +109,20 @@ export const MembersPage: React.FC = () => {
             <FormField label="مبلغ پرداختی" type="number" value={form.price_paid ?? ''} onChange={(e) => setForm({ ...form, price_paid: e.target.value ? Number(e.target.value) : null })} />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm rounded-lg text-slate-300 hover:bg-[#222]">انصراف</button>
-            <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 text-sm rounded-lg bg-[#FF7A1A] text-white font-medium disabled:opacity-50">{saving ? '...' : 'ذخیره'}</button>
+            <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm rounded-lg text-muted hover:bg-surface-elevated">انصراف</button>
+            <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-fg font-medium disabled:opacity-50">{saving ? '...' : 'ذخیره'}</button>
           </div>
         </div>
       </Modal>
       <ConfirmDeleteModal isOpen={!!deleting} onClose={() => setDeleting(null)} onConfirm={handleDelete} title="حذف عضو" itemName={deleting?.full_name || ''} />
       <Modal isOpen={!!detail} onClose={() => setDetail(null)} title="جزئیات عضو">
         {detail && (
-          <div className="space-y-2 text-sm text-slate-300">
-            <p><span className="text-slate-500">نام:</span> {detail.full_name}</p>
-            <p><span className="text-slate-500">تلفن:</span> {detail.phone}</p>
-            <p><span className="text-slate-500">وضعیت:</span> {detail.membership_status || '—'}</p>
-            <p><span className="text-slate-500">جلسات باقی:</span> {detail.sessions_remaining_calc ?? detail.sessions_remaining ?? '—'}</p>
-            <p><span className="text-slate-500">آخرین حضور:</span> {detail.last_visit_at || '—'}</p>
+          <div className="space-y-2 text-sm text-muted">
+            <p><span className="text-disabled">نام:</span> {detail.full_name}</p>
+            <p><span className="text-disabled">تلفن:</span> {detail.phone}</p>
+            <p><span className="text-disabled">وضعیت:</span> {detail.membership_status || '—'}</p>
+            <p><span className="text-disabled">جلسات باقی:</span> {detail.sessions_remaining_calc ?? detail.sessions_remaining ?? '—'}</p>
+            <p><span className="text-disabled">آخرین حضور:</span> {detail.last_visit_at || '—'}</p>
           </div>
         )}
       </Modal>
