@@ -4,66 +4,61 @@ import { X } from 'lucide-react';
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
-  subtitle?: string;
+  title?: string;
   children: React.ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export const Modal: React.FC<ModalProps> = ({
-  isOpen,
-  onClose,
-  title,
-  subtitle,
-  children,
-  maxWidth = 'lg',
-}) => {
+const sizeMap = {
+  sm: 'max-w-md',
+  md: 'max-w-lg',
+  lg: 'max-w-2xl',
+};
+
+export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md' }) => {
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleKeyDown);
-    }
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = 'unset';
-      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
     };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  const maxWidthClasses = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg',
-    xl: 'max-w-xl',
-    '2xl': 'max-w-2xl',
-  }[maxWidth];
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
       <div
-        className={`w-full ${maxWidthClasses} bg-[#181818] border border-[#2A2A2A] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200`}
-        onClick={(e) => e.stopPropagation()}
+        className="absolute inset-0 backdrop-blur-sm"
+        style={{ background: 'var(--fitopia-overlay)' }}
+        onClick={onClose}
+        aria-hidden
+      />
+      <div
+        className={`relative w-full ${sizeMap[size]} bg-surface border border-border rounded-2xl overflow-hidden transition-colors duration-200`}
+        style={{ boxShadow: 'var(--fitopia-shadow)' }}
+        role="dialog"
+        aria-modal="true"
       >
-        {/* Header */}
-        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[#262626] flex items-center justify-between bg-[#141414]">
-          <div>
-            <h3 className="text-sm sm:text-base font-bold text-white">{title}</h3>
-            {subtitle && <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+        {title && (
+          <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-border flex items-center justify-between bg-header">
+            <h2 className="text-base font-bold text-ink">{title}</h2>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 text-muted hover:text-primary hover:bg-surface-hover rounded-xl transition-colors duration-200"
+              aria-label="بستن"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white hover:bg-[#282828] rounded-xl transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Content Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 text-right">{children}</div>
+        )}
+        <div className="p-4 sm:p-6 max-h-[80vh] overflow-y-auto text-ink">{children}</div>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ export const EmptyState: React.FC<{
   icon?: React.ReactNode;
 }> = ({ title = 'داده‌ای برای نمایش وجود ندارد', description, action, icon }) => (
   <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-    <div className="w-14 h-14 rounded-2xl bg-surface-elevated border border-border flex items-center justify-center text-muted mb-4">
+    <div className="w-14 h-14 rounded-2xl bg-primary-soft border border-primary/20 flex items-center justify-center text-primary mb-4">
       {icon || <Inbox className="w-7 h-7" />}
     </div>
     <h3 className="text-base font-semibold text-ink mb-1">{title}</h3>
@@ -25,8 +25,8 @@ export const LoadingBlock: React.FC<{ label?: string }> = ({ label = 'در حا�
 );
 
 export const ErrorBlock: React.FC<{ message: string; onRetry?: () => void }> = ({ message, onRetry }) => (
-  <div className="rounded-xl border border-danger/30 bg-danger/10 p-6 text-center">
-    <p className="text-sm text-danger mb-3">{message || 'دریافت اطلاعات با خطا مواجه شد.'}</p>
+  <div className="rounded-xl border border-danger/30 bg-danger-soft p-6 text-center">
+    <p className="text-sm text-danger-text mb-3">{message || 'دریافت اطلاعات با خطا مواجه شد.'}</p>
     {onRetry && (
       <button
         type="button"
