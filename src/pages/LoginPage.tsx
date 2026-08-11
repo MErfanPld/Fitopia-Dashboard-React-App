@@ -33,10 +33,11 @@ export const LoginPage: React.FC = () => {
   const errorMessage = localError || authError;
 
   return (
-    <div className="min-h-screen bg-canvas text-ink flex items-center justify-center p-4 font-sans" dir="rtl">
-      <div className="w-full max-w-md bg-surface border border-line rounded-3xl p-8 shadow-lg">
+    <div className="min-h-screen bg-background text-ink flex items-center justify-center p-4 font-sans" dir="rtl">
+      <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="w-full max-w-md bg-surface border border-border rounded-3xl p-8 shadow-2xl relative z-10">
         <div className="text-center space-y-3 mb-8">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-primary flex items-center justify-center shadow-md">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-primary to-primary-hover flex items-center justify-center shadow-lg shadow-primary/30">
             <Zap className="w-8 h-8 text-white fill-white" />
           </div>
           <h1 className="text-2xl font-extrabold text-ink">ورود به پنل باشگاه</h1>
@@ -44,17 +45,17 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {errorMessage && (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-danger font-medium">
+          <div className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger font-medium">
             {errorMessage}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-xs font-bold text-ink mb-1.5">نام کاربری</label>
+            <label className="block text-xs font-bold text-muted mb-1.5">نام کاربری</label>
             <div className="relative">
               <input
-                className="w-full bg-canvas border border-line rounded-xl pr-10 pl-3 py-3 text-sm text-ink focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                className="w-full bg-surface-elevated border border-border rounded-xl pr-10 pl-3 py-3 text-sm text-ink focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoComplete="username"
@@ -64,11 +65,11 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-bold text-ink mb-1.5">کلمه عبور</label>
+            <label className="block text-xs font-bold text-muted mb-1.5">کلمه عبور</label>
             <div className="relative">
               <input
                 type="password"
-                className="w-full bg-canvas border border-line rounded-xl pr-10 pl-3 py-3 text-sm text-ink focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
+                className="w-full bg-surface-elevated border border-border rounded-xl pr-10 pl-3 py-3 text-sm text-ink focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
@@ -78,7 +79,7 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
           <button type="button" onClick={() => setRememberMe(!rememberMe)} className="flex items-center gap-2 text-xs text-muted hover:text-ink">
-            {rememberMe ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4 text-muted" />}
+            {rememberMe ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4 text-muted-2" />}
             مرا به خاطر بسپار
           </button>
           <Button type="submit" variant="primary" className="w-full" loading={isLoading} rightIcon={<ArrowLeft className="w-4 h-4" />}>
@@ -86,7 +87,7 @@ export const LoginPage: React.FC = () => {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-[11px] text-muted flex items-center justify-center gap-1">
+        <p className="mt-6 text-center text-[11px] text-muted-2 flex items-center justify-center gap-1">
           <ShieldCheck className="w-3.5 h-3.5 text-success" /> ورود امن JWT
         </p>
       </div>
