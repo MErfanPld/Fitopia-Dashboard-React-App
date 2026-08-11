@@ -34,8 +34,8 @@ function resolveTheme(mode: ThemeMode): ResolvedTheme {
 function applyDomTheme(resolved: ResolvedTheme) {
   const root = document.documentElement;
   root.setAttribute('data-theme', resolved);
-  root.classList.toggle('dark', resolved === 'dark');
-  root.classList.toggle('light', resolved === 'light');
+  root.classList.remove('dark', 'light');
+  root.classList.add(resolved);
   root.style.colorScheme = resolved;
 }
 

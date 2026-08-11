@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Fitopia Design System — Dark + Orange / Light */
+/* Fitopia Design System — Dark + Light (Orange primary) */
 :root,
 [data-theme="dark"] {
   --fitopia-background: #0B0B0F;
@@ -22,6 +22,7 @@
   --fitopia-primary-active: #E56A00;
   --fitopia-primary-soft: rgba(255, 122, 26, 0.12);
   --fitopia-primary-soft-hover: rgba(255, 122, 26, 0.06);
+  --fitopia-primary-fg: #0B0B0F;
   --fitopia-success: #22C55E;
   --fitopia-success-soft: rgba(34, 197, 94, 0.12);
   --fitopia-success-text: #4ADE80;
@@ -39,10 +40,11 @@
   --fitopia-scrollbar: #3f3f46;
   --fitopia-scrollbar-hover: #52525b;
   --fitopia-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --fitopia-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 [data-theme="light"] {
-  --fitopia-background: #F7F7F8;
+  --fitopia-background: #F4F4F5;
   --fitopia-sidebar: #FFFFFF;
   --fitopia-header: #FFFFFF;
   --fitopia-surface: #FFFFFF;
@@ -61,23 +63,25 @@
   --fitopia-primary-active: #C45E00;
   --fitopia-primary-soft: rgba(255, 122, 26, 0.10);
   --fitopia-primary-soft-hover: rgba(255, 122, 26, 0.06);
+  --fitopia-primary-fg: #0B0B0F;
   --fitopia-success: #16A34A;
   --fitopia-success-soft: rgba(22, 163, 74, 0.10);
-  --fitopia-success-text: #16A34A;
+  --fitopia-success-text: #15803D;
   --fitopia-warning: #D97706;
   --fitopia-warning-soft: rgba(217, 119, 6, 0.10);
-  --fitopia-warning-text: #D97706;
+  --fitopia-warning-text: #B45309;
   --fitopia-danger: #DC2626;
   --fitopia-danger-soft: rgba(220, 38, 38, 0.10);
-  --fitopia-danger-text: #DC2626;
+  --fitopia-danger-text: #B91C1C;
   --fitopia-info: #2563EB;
   --fitopia-info-soft: rgba(37, 99, 235, 0.10);
-  --fitopia-info-text: #2563EB;
+  --fitopia-info-text: #1D4ED8;
   --fitopia-skeleton: #E4E4E7;
-  --fitopia-overlay: rgba(0, 0, 0, 0.45);
+  --fitopia-overlay: rgba(15, 15, 20, 0.45);
   --fitopia-scrollbar: #D4D4D8;
   --fitopia-scrollbar-hover: #A1A1AA;
   --fitopia-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  --fitopia-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 @theme {
@@ -99,6 +103,7 @@
   --color-primary-hover: var(--fitopia-primary-hover);
   --color-primary-active: var(--fitopia-primary-active);
   --color-primary-soft: var(--fitopia-primary-soft);
+  --color-primary-fg: var(--fitopia-primary-fg);
   --color-success: var(--fitopia-success);
   --color-success-soft: var(--fitopia-success-soft);
   --color-success-text: var(--fitopia-success-text);
@@ -163,5 +168,14 @@
   select,
   textarea {
     color-scheme: inherit;
+  }
+
+  .bg-background,
+  .bg-surface,
+  .bg-surface-elevated,
+  .bg-sidebar,
+  .bg-header,
+  .bg-input {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   }
 }
