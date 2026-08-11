@@ -24,12 +24,12 @@ export const Header: React.FC<HeaderProps> = ({
   const isDark = resolvedTheme === 'dark';
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-border">
       <div className="flex items-start gap-3">
         <button
           type="button"
           onClick={toggleMobileMenu}
-          className="lg:hidden mt-1 p-2 rounded-xl border border-border bg-surface text-muted hover:text-ink hover:bg-surface-hover transition-colors duration-200"
+          className="lg:hidden mt-1 p-2 rounded-xl border border-border bg-header text-muted hover:text-primary hover:border-primary/40 transition-colors duration-200"
           aria-label="منو"
         >
           <Menu className="w-5 h-5" />
@@ -43,17 +43,17 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           type="button"
           onClick={toggleTheme}
-          className="relative w-10 h-10 rounded-xl border border-border bg-surface text-muted hover:text-primary hover:border-primary/40 hover:bg-surface-hover transition-colors duration-200 flex items-center justify-center"
+          className="relative w-10 h-10 rounded-xl border border-border bg-header text-muted hover:text-primary hover:border-primary/40 transition-colors duration-200 flex items-center justify-center"
           aria-label={isDark ? 'تغییر به تم روشن' : 'تغییر به تم تاریک'}
           title={isDark ? 'تم روشن' : 'تم تاریک'}
         >
           <Sun
-            className={`w-4.5 h-4.5 absolute transition-all duration-200 ${
+            className={`w-4 h-4 absolute transition-all duration-200 ${
               isDark ? 'opacity-0 scale-50 rotate-90' : 'opacity-100 scale-100 rotate-0'
             }`}
           />
           <Moon
-            className={`w-4.5 h-4.5 absolute transition-all duration-200 ${
+            className={`w-4 h-4 absolute transition-all duration-200 ${
               isDark ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-50 -rotate-90'
             }`}
           />
