@@ -16,17 +16,22 @@ const UIContext = createContext<UIContextType | undefined>(undefined);
 export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const showToast = useCallback((message: string, type: ToastType = 'info') => {
     setToast({ id: Date.now(), message, type });
     window.setTimeout(() => setToast(null), 4000);
   }, []);
+
+  const clearToast = useCallback(() => setToast(null), []);
+  const toggleMobileMenu = useCallback(() => setIsMobileMenuOpen((v) => !v), []);
+  const closeMobileMenu = useCallback(() => setIsMobileMenuOpen(false), []);
+
   return (
     <UIContext.Provider value={{
-      toast, showToast, clearToast: () => setToast(null),
-      isMobileMenuOpen,
-      toggleMobileMenu: () => setIsMobileMenuOpen((v) => !v),
-      closeMobileMenu: () => setIsMobileMenuOpen(false),
-    }}>{children}</UIContext.Provider>
+      toast, showToast, clearToast, isMobileMenuOpen, toggleMobileMenu, closeMobileMenu,
+    }}>
+      {children}
+    </UIContext.Provider>
   );
 };
 
