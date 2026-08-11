@@ -26,7 +26,7 @@ export const authService = {
       });
       const access = data?.tokens?.access;
       const refresh = data?.tokens?.refresh;
-      if (!access || !isJwt(access)) throw new Error('\u067e\u0627\u0633\u062e \u0633\u0631\u0648\u0631 \u0641\u0627\u0642\u062f \u062a\u0648\u06a9\u0646 \u0645\u0639\u062a\u0628\u0631 \u0627\u0633\u062a.');
+      if (!access || !isJwt(access)) throw new Error('پاسخ سرور فاقد توکن معتبر است.');
       const gyms: GymAccess[] = Array.isArray(data.gyms) ? data.gyms : [];
       const user = data.user || ({} as AuthUser);
       tokenStorage.setTokens(access, refresh);
@@ -36,7 +36,7 @@ export const authService = {
       else localStorage.removeItem(CURRENT_GYM_KEY);
       return { token: access, access, refresh: refresh || '', user, gyms };
     } catch (e) {
-      throw new Error(getErrorMessage(e, '\u0646\u0627\u0645 \u06a9\u0627\u0631\u0628\u0631\u06cc \u06cc\u0627 \u0631\u0645\u0632 \u0639\u0628\u0648\u0631 \u0627\u0634\u062a\u0628\u0627\u0647 \u0627\u0633\u062a.'));
+      throw new Error(getErrorMessage(e, 'نام کاربری یا رمز عبور اشتباه است.'));
     }
   },
   logout() {

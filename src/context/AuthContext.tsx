@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentGymState(r.gyms[0] || null);
       return { token: r.access, gyms: r.gyms };
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '\u062e\u0637\u0627');
+      setError(err instanceof Error ? err.message : 'خطا');
       setIsAuthenticated(false);
       throw err;
     }

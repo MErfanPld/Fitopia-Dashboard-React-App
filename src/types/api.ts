@@ -16,15 +16,15 @@ export const ROLE_DEFAULTS: Record<StaffRole, PermissionCode[]> = {
 };
 
 export const ROLE_LABELS: Record<StaffRole, string> = {
-  owner: '\u0645\u0627\u0644\u06a9', manager: '\u0645\u062f\u06cc\u0631', receptionist: '\u067e\u0630\u06cc\u0631\u0634', accountant: '\u062d\u0633\u0627\u0628\u062f\u0627\u0631', coach: '\u0645\u0631\u0628\u06cc', staff: '\u06a9\u0627\u0631\u0645\u0646\u062f',
+  owner: 'مالک', manager: 'مدیر', receptionist: 'پذیرش', accountant: 'حسابدار', coach: 'مربی', staff: 'کارمند',
 };
 
 export const PERMISSION_LABELS: Record<PermissionCode, string> = {
-  'customer.view': '\u0645\u0634\u0627\u0647\u062f\u0647 \u0645\u0634\u062a\u0631\u06cc', 'customer.create': '\u0627\u06cc\u062c\u0627\u062f \u0645\u0634\u062a\u0631\u06cc', 'customer.update': '\u0648\u06cc\u0631\u0627\u06cc\u0634 \u0645\u0634\u062a\u0631\u06cc', 'customer.delete': '\u062d\u0630\u0641 \u0645\u0634\u062a\u0631\u06cc',
-  'course.view': '\u0645\u0634\u0627\u0647\u062f\u0647 \u062f\u0648\u0631\u0647', 'course.create': '\u0627\u06cc\u062c\u0627\u062f \u062f\u0648\u0631\u0647', 'course.update': '\u0648\u06cc\u0631\u0627\u06cc\u0634 \u062f\u0648\u0631\u0647', 'course.enroll': '\u062b\u0628\u062a\u200c\u0646\u0627\u0645 \u062f\u0631 \u062f\u0648\u0631\u0647',
-  'attendance.view': '\u0645\u0634\u0627\u0647\u062f\u0647 \u062d\u0636\u0648\u0631', 'attendance.create': '\u062b\u0628\u062a \u062d\u0636\u0648\u0631',
-  'finance.view': '\u0645\u0634\u0627\u0647\u062f\u0647 \u0645\u0627\u0644\u06cc', 'finance.create': '\u062b\u0628\u062a \u0645\u0627\u0644\u06cc', 'finance.update': '\u0648\u06cc\u0631\u0627\u06cc\u0634 \u0645\u0627\u0644\u06cc', 'finance.report': '\u06af\u0632\u0627\u0631\u0634 \u0645\u0627\u0644\u06cc', 'finance.refund': '\u0627\u0633\u062a\u0631\u062f\u0627\u062f',
-  'employee.view': '\u0645\u0634\u0627\u0647\u062f\u0647 \u06a9\u0627\u0631\u0645\u0646\u062f', 'employee.manage': '\u0645\u062f\u06cc\u0631\u06cc\u062a \u06a9\u0627\u0631\u0645\u0646\u062f', 'offering.manage': '\u0645\u062f\u06cc\u0631\u06cc\u062a \u0631\u0634\u062a\u0647\u200c\u0647\u0627',
+  'customer.view': 'مشاهده مشتری', 'customer.create': 'ایجاد مشتری', 'customer.update': 'ویرایش مشتری', 'customer.delete': 'حذف مشتری',
+  'course.view': 'مشاهده دوره', 'course.create': 'ایجاد دوره', 'course.update': 'ویرایش دوره', 'course.enroll': 'ثبت‌نام در دوره',
+  'attendance.view': 'مشاهده حضور', 'attendance.create': 'ثبت حضور',
+  'finance.view': 'مشاهده مالی', 'finance.create': 'ثبت مالی', 'finance.update': 'ویرایش مالی', 'finance.report': 'گزارش مالی', 'finance.refund': 'استرداد',
+  'employee.view': 'مشاهده کارمند', 'employee.manage': 'مدیریت کارمند', 'offering.manage': 'مدیریت رشته‌ها',
 };
 
 export const ALL_PERMISSIONS = Object.keys(PERMISSION_LABELS) as PermissionCode[];
