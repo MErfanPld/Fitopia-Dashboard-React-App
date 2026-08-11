@@ -4,8 +4,14 @@ export const Card: React.FC<{
   children: React.ReactNode;
   className?: string;
   padding?: boolean;
-}> = ({ children, className = '', padding = true }) => (
-  <div className={`bg-surface border border-line rounded-2xl shadow-sm ${padding ? 'p-5' : ''} ${className}`}>
+  hoverable?: boolean;
+}> = ({ children, className = '', padding = true, hoverable = false }) => (
+  <div
+    className={`bg-surface border border-border rounded-2xl transition-colors duration-200 ${
+      hoverable ? 'hover:bg-surface-hover hover:border-border-hover' : ''
+    } ${padding ? 'p-5' : ''} ${className}`}
+    style={{ boxShadow: 'var(--fitopia-shadow)' }}
+  >
     {children}
   </div>
 );

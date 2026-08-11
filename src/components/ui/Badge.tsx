@@ -1,22 +1,24 @@
 import React from 'react';
 
-type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'primary';
+type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'orange' | 'neutral';
 
-const tones: Record<Tone, string> = {
-  neutral: 'bg-canvas text-muted border-line',
-  success: 'bg-green-50 text-success border-green-200',
-  warning: 'bg-amber-50 text-warning border-amber-200',
-  danger: 'bg-red-50 text-danger border-red-200',
-  info: 'bg-blue-50 text-info border-blue-200',
-  primary: 'bg-primary/10 text-primary border-primary/20',
+const styles: Record<BadgeVariant, string> = {
+  success: 'bg-success-soft text-success-text border-success/20',
+  warning: 'bg-warning-soft text-warning-text border-warning/20',
+  danger: 'bg-danger-soft text-danger-text border-danger/20',
+  info: 'bg-info-soft text-info-text border-info/20',
+  orange: 'bg-primary-soft text-primary-hover border-primary/20',
+  neutral: 'bg-surface-hover text-muted border-border',
 };
 
 export const Badge: React.FC<{
   children: React.ReactNode;
-  tone?: Tone;
+  variant?: BadgeVariant;
   className?: string;
-}> = ({ children, tone = 'neutral', className = '' }) => (
-  <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${tones[tone]} ${className}`}>
+}> = ({ children, variant = 'neutral', className = '' }) => (
+  <span
+    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${styles[variant]} ${className}`}
+  >
     {children}
   </span>
 );
