@@ -25,44 +25,44 @@ export const OfferingsPage: React.FC = () => {
     if (!gymId) return;
     setLoading(true); setError(null);
     try { setItems(await offeringsService.list(gymId)); }
-    catch (e: unknown) { setError(e instanceof Error ? e.message : '\u062f\u0631\u06cc\u0627\u0641\u062a \u0627\u0637\u0644\u0627\u0639\u0627\u062a \u0628\u0627 \u062e\u0637\u0627 \u0645\u0648\u0627\u062c\u0647 \u0634\u062f.'); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : 'دریافت اطلاعات با خطا مواجه شد.'); }
     finally { setLoading(false); }
   }, [gymId]);
 
   useEffect(() => { if (hasGym && can('offering.manage')) load(); }, [hasGym, load, can]);
 
   const columns: Column<GymOffering>[] = [
-    { key: 'sport_name', header: '\u0631\u0634\u062a\u0647', render: (r) => <span className="text-white">{r.sport_name || r.sport || '\u2014'}</span> },
-    { key: 'description', header: '\u062a\u0648\u0636\u06cc\u062d', render: (r) => <span className="text-slate-300 text-xs">{r.description || '\u2014'}</span> },
-    { key: 'monthly_price', header: '\u0645\u0627\u0647\u0627\u0646\u0647', render: (r) => <span>{r.monthly_price?.toLocaleString('fa-IR') ?? '\u2014'}</span> },
-    { key: 'is_active', header: '\u0648\u0636\u0639\u06cc\u062a', render: (r) => <StatusBadge status={r.is_active ? 'active' : 'inactive'} /> },
+    { key: 'sport_name', header: 'رشته', render: (r) => <span className="text-ink">{r.sport_name || r.sport || '—'}</span> },
+    { key: 'description', header: 'توضیح', render: (r) => <span className="text-muted text-xs">{r.description || '—'}</span> },
+    { key: 'monthly_price', header: 'ماهانه', render: (r) => <span>{r.monthly_price?.toLocaleString('fa-IR') ?? '—'}</span> },
+    { key: 'is_active', header: 'وضعیت', render: (r) => <StatusBadge status={r.is_active ? 'active' : 'inactive'} /> },
   ];
 
-  if (!hasGym) return <div className="space-y-6"><Header title="\u062e\u062f\u0645\u0627\u062a" /><NoGymSelected /></div>;
-  if (!can('offering.manage')) return <div className="space-y-6"><Header title="\u062e\u062f\u0645\u0627\u062a" /><EmptyState title="\u062f\u0633\u062a\u0631\u0633\u06cc \u0646\u062f\u0627\u0631\u06cc\u062f" /></div>;
+  if (!hasGym) return <div className="space-y-6"><Header title="خدمات" /><NoGymSelected /></div>;
+  if (!can('offering.manage')) return <div className="space-y-6"><Header title="خدمات" /><EmptyState title="دسترسی ندارید" /></div>;
 
   return (
     <div className="space-y-6">
-      <Header title="\u062e\u062f\u0645\u0627\u062a \u0648 \u0631\u0634\u062a\u0647\u200c\u0647\u0627" subtitle="\u0622\u0641\u0631\u06cc\u0646\u06af\u200c\u0647\u0627\u06cc \u0628\u0627\u0634\u06af\u0627\u0647" onQuickAction={() => { setDesc(''); setMonthly(''); setOpen(true); }} quickActionLabel="\u062e\u062f\u0645\u062a \u062c\u062f\u06cc\u062f" />
+      <Header title="خدمات" subtitle="خدمات و رشته‌های باشگاه" onQuickAction={() => { setDesc(''); setMonthly(''); setOpen(true); }} quickActionLabel="خدمت جدید" />
       {loading && <LoadingBlock />}
       {error && <ErrorBlock message={error} onRetry={load} />}
-      {!loading && !error && items.length === 0 && <EmptyState title="\u062e\u062f\u0645\u062a\u06cc \u062b\u0628\u062a \u0646\u0634\u062f\u0647" />}
+      {!loading && !error && items.length === 0 && <EmptyState title="خدمتی ثبت نشده" />}
       {!loading && !error && items.length > 0 && <DataTable columns={columns} data={items} />}
-      <Modal isOpen={open} onClose={() => setOpen(false)} title="\u062e\u062f\u0645\u062a \u062c\u062f\u06cc\u062f">
+      <Modal isOpen={open} onClose={() => setOpen(false)} title="خدمت جدید">
         <div className="space-y-4">
-          <FormField label="\u062a\u0648\u0636\u06cc\u062d\u0627\u062a" isTextArea value={desc} onChange={(e) => setDesc(e.target.value)} />
-          <FormField label="\u0642\u06cc\u0645\u062a \u0645\u0627\u0647\u0627\u0646\u0647" type="number" value={monthly} onChange={(e) => setMonthly(e.target.value)} />
+          <FormField label="توضیحات" isTextarea value={desc} onChange={(e) => setDesc(e.target.value)} />
+          <FormField label="قیمت ماهانه" type="number" value={monthly} onChange={(e) => setMonthly(e.target.value)} />
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setOpen(false)} className="px-4 py-2 text-sm text-slate-300">\u0627\u0646\u0635\u0631\u0627\u0641</button>
-            <button type="button" disabled={saving} className="px-4 py-2 text-sm bg-[#FF7A1A] text-white rounded-lg" onClick={async () => {
+            <button type="button" onClick={() => setOpen(false)} className="px-4 py-2 text-sm text-muted">انصراف</button>
+            <button type="button" disabled={saving} className="px-4 py-2 text-sm bg-primary text-[#0B0B0F] font-bold rounded-lg" onClick={async () => {
               if (!gymId) return;
               setSaving(true);
               try {
                 await offeringsService.create(gymId, { description: desc, monthly_price: monthly ? Number(monthly) : null, is_active: true });
-                showToast('\u062b\u0628\u062a \u0634\u062f', 'success'); setOpen(false); load();
-              } catch (e: unknown) { showToast(e instanceof Error ? e.message : '\u062e\u0637\u0627', 'danger'); }
+                showToast('ثبت شد', 'success'); setOpen(false); load();
+              } catch (e: unknown) { showToast(e instanceof Error ? e.message : 'خطا', 'danger'); }
               finally { setSaving(false); }
-            }}>\u0630\u062e\u06cc\u0631\u0647</button>
+            }}>ذخیره</button>
           </div>
         </div>
       </Modal>
