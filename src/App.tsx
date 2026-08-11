@@ -1,69 +1,60 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { AppProvider } from './context/AppContext';
+import { UIProvider } from './context/UIContext';
 import { ProtectedRoute, PublicOnlyRoute } from './components/common/ProtectedRoute';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { LoginPage } from './pages/LoginPage';
 import { WelcomePage } from './pages/WelcomePage';
 import { DashboardPage } from './pages/DashboardPage';
-import { UsersPage } from './pages/UsersPage';
-import { GymsPage } from './pages/GymsPage';
-import { TicketsPage } from './pages/TicketsPage';
-import { PaymentsPage } from './pages/PaymentsPage';
-import { SettingsPage } from './pages/SettingsPage';
+import { MembersPage } from './pages/members/MembersPage';
+import { CoachesPage } from './pages/coaches/CoachesPage';
+import { EmployeesPage } from './pages/employees/EmployeesPage';
+import { OfferingsPage } from './pages/offerings/OfferingsPage';
+import { CoursesPage } from './pages/courses/CoursesPage';
+import { AttendancePage } from './pages/attendance/AttendancePage';
+import { FinancePage } from './pages/finance/FinancePage';
+import { SessionsPage } from './pages/sessions/SessionsPage';
+import { TicketsPage } from './pages/tickets/TicketsPage';
+import { AuditLogsPage } from './pages/audit/AuditLogsPage';
+import { SettingsPage } from './pages/settings/SettingsPage';
 import { GuidePage } from './pages/GuidePage';
 import { PrivacyPage } from './pages/PrivacyPage';
 
 export default function App() {
   return (
     <AuthProvider>
-      <AppProvider>
+      <UIProvider>
         <BrowserRouter>
           <Routes>
-            {/* Public Auth Routes */}
-            <Route
-              path="/welcome"
-              element={
-                <PublicOnlyRoute>
-                  <WelcomePage />
-                </PublicOnlyRoute>
-              }
-            />
-            <Route
-              path="/login"
-              element={
-                <PublicOnlyRoute>
-                  <LoginPage />
-                </PublicOnlyRoute>
-              }
-            />
-
-            {/* Protected Admin Shell Routes with Right-Side Sidebar */}
-            <Route
-              element={
-                <ProtectedRoute>
-                  <AdminLayout />
-                </ProtectedRoute>
-              }
-            >
+            <Route path="/welcome" element={<PublicOnlyRoute><WelcomePage /></PublicOnlyRoute>} />
+            <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
+            <Route element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/users" element={<UsersPage />} />
-              <Route path="/users/:subtab" element={<UsersPage />} />
-              <Route path="/gyms" element={<GymsPage />} />
+              <Route path="/members" element={<MembersPage />} />
+              <Route path="/coaches" element={<CoachesPage />} />
+              <Route path="/employees" element={<EmployeesPage />} />
+              <Route path="/offerings" element={<OfferingsPage />} />
+              <Route path="/courses" element={<CoursesPage />} />
+              <Route path="/attendance" element={<AttendancePage />} />
+              <Route path="/sessions" element={<SessionsPage />} />
+              <Route path="/finance" element={<FinancePage />} />
+              <Route path="/finance/transactions" element={<FinancePage />} />
+              <Route path="/finance/payments" element={<FinancePage />} />
+              <Route path="/finance/refunds" element={<FinancePage />} />
+              <Route path="/finance/reports" element={<FinancePage />} />
               <Route path="/tickets" element={<TicketsPage />} />
-              <Route path="/payments" element={<PaymentsPage />} />
+              <Route path="/audit" element={<AuditLogsPage />} />
+              <Route path="/audit-logs" element={<AuditLogsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/guide" element={<GuidePage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
-
-              {/* Default fallback route */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Route>
           </Routes>
         </BrowserRouter>
-      </AppProvider>
+      </UIProvider>
     </AuthProvider>
   );
 }
