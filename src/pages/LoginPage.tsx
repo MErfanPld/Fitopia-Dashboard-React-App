@@ -1,36 +1,30 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, Lock, User, ArrowLeft, ShieldCheck, CheckSquare, Square } from 'lucide-react';
+import { Zap, User, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 
 export const LoginPage: React.FC = () => {
-  const { login, error: authError, clearError } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true);
-  const [localError, setLocalError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim()) { setLocalError('لطفاً نام کاربری را وارد کنید.'); return; }
-    if (!password) { setLocalError('لطفاً کلمه عبور را وارد کنید.'); return; }
-    setLocalError(''); clearError(); setIsLoading(true);
+    setError(null);
+    setLoading(true);
     try {
       await login(username.trim(), password);
-      const target = localStorage.getItem('fitopia_return_to');
-      localStorage.removeItem('fitopia_return_to');
-      navigate(target && target !== '/login' ? target : '/dashboard');
+      navigate('/dashboard', { replace: true });
     } catch (err: unknown) {
-      setLocalError(err instanceof Error ? err.message : 'خطا در ورود');
+      setError(err instanceof Error ? err.message : 'ورود ناموفق بود');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-
-  const errorMessage = localError || authError;
 
   return (
     <div className="min-h-screen bg-background text-ink flex items-center justify-center p-4 font-sans" dir="rtl">
@@ -38,28 +32,27 @@ export const LoginPage: React.FC = () => {
       <div className="w-full max-w-md bg-surface border border-border rounded-3xl p-8 shadow-2xl relative z-10">
         <div className="text-center space-y-3 mb-8">
           <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-primary to-primary-hover flex items-center justify-center shadow-lg shadow-primary/30">
-            <Zap className="w-8 h-8 text-white fill-white" />
+            <Zap className="w-8 h-8 text-primary-fg fill-primary-fg" />
           </div>
           <h1 className="text-2xl font-extrabold text-ink">ورود به پنل باشگاه</h1>
-          <p className="text-sm text-muted">فیتوپیا — مدیریت باشگاه ورزشی</p>
+          <p className="text-sm text-muted">ورود به پنل مدیریت باشگاه</p>
         </div>
-
-        {errorMessage && (
+        {error && (
           <div className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger font-medium">
-            {errorMessage}
+            {error}
           </div>
         )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-muted mb-1.5">نام کاربری</label>
             <div className="relative">
               <input
-                className="w-full bg-surface-elevated border border-border rounded-xl pr-10 pl-3 py-3 text-sm text-ink focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                type="text"
+                autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-                placeholder="نام کاربری"
+                className="w-full bg-surface-elevated border border-border rounded-xl pr-10 pl-3 py-3 text-sm text-ink focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                required
               />
               <User className="w-4 h-4 text-muted absolute right-3.5 top-3.5" />
             </div>
@@ -69,27 +62,19 @@ export const LoginPage: React.FC = () => {
             <div className="relative">
               <input
                 type="password"
-                className="w-full bg-surface-elevated border border-border rounded-xl pr-10 pl-3 py-3 text-sm text-ink focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                placeholder="••••••••"
+                className="w-full bg-surface-elevated border border-border rounded-xl pr-10 pl-3 py-3 text-sm text-ink focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                required
               />
               <Lock className="w-4 h-4 text-muted absolute right-3.5 top-3.5" />
             </div>
           </div>
-          <button type="button" onClick={() => setRememberMe(!rememberMe)} className="flex items-center gap-2 text-xs text-muted hover:text-ink">
-            {rememberMe ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4 text-muted-2" />}
-            مرا به خاطر بسپار
-          </button>
-          <Button type="submit" variant="primary" className="w-full" loading={isLoading} rightIcon={<ArrowLeft className="w-4 h-4" />}>
-            ورود به پنل
+          <Button type="submit" variant="primary" size="lg" loading={loading} className="w-full">
+            ورود
           </Button>
         </form>
-
-        <p className="mt-6 text-center text-[11px] text-muted-2 flex items-center justify-center gap-1">
-          <ShieldCheck className="w-3.5 h-3.5 text-success" /> ورود امن JWT
-        </p>
       </div>
     </div>
   );
