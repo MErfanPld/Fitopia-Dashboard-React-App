@@ -1,137 +1,119 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import authService, { LoginResult } from '../services/authService';
-import { GymStaffAccess } from '../types';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import authService from '../services/auth/authService';
+import type { AuthUser, GymAccess, PermissionCode } from '../types/api';
+import { hasPermission } from '../types/api';
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  token: string | null;
-  gymAccessList: GymStaffAccess[];
-  currentGym: GymStaffAccess | null;
   loading: boolean;
+  token: string | null;
+  user: AuthUser | null;
+  gymAccessList: GymAccess[];
+  currentGym: GymAccess | null;
   error: string | null;
-  login: (username: string, password: string) => Promise<{ token: string | null; gyms: GymStaffAccess[] }>;
+  login: (username: string, password: string) => Promise<{ token: string | null; gyms: GymAccess[] }>;
   logout: () => void;
-  setCurrentGym: (gym: GymStaffAccess) => void;
+  setCurrentGym: (gym: GymAccess) => void;
   clearError: () => void;
+  refreshGyms: () => Promise<void>;
+  can: (code: PermissionCode) => boolean;
+  gymId: number | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const TOKEN_KEY = 'fitopia_auth_token';
-const GYMS_KEY = 'fitopia_gym_access';
-const CURRENT_GYM_KEY = 'fitopia_current_gym';
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState<string | null>(null);
-  const [gymAccessList, setGymAccessList] = useState<GymStaffAccess[]>([]);
-  const [currentGym, setCurrentGymState] = useState<GymStaffAccess | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [gymAccessList, setGymAccessList] = useState<GymAccess[]>([]);
+  const [currentGym, setCurrentGymState] = useState<GymAccess | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Restore session on app startup
   useEffect(() => {
+    const s = authService.getStoredSession();
+    if (s.access) {
+      setIsAuthenticated(true);
+      setToken(s.access);
+      setUser(s.user);
+      setGymAccessList(s.gyms);
+      setCurrentGymState(s.currentGym);
+    }
+    setLoading(false);
+  }, []);
+
+  const login = useCallback(async (username: string, password: string) => {
+    setError(null);
     try {
-      const storedToken = localStorage.getItem(TOKEN_KEY);
-      const storedGymsStr = localStorage.getItem(GYMS_KEY);
-      const storedCurrentGymStr = localStorage.getItem(CURRENT_GYM_KEY);
-
-      if (storedToken) {
-        setToken(storedToken);
-        setIsAuthenticated(true);
-
-        if (storedGymsStr) {
-          try {
-            const gyms: GymStaffAccess[] = JSON.parse(storedGymsStr);
-            setGymAccessList(gyms);
-
-            if (storedCurrentGymStr) {
-              setCurrentGymState(JSON.parse(storedCurrentGymStr));
-            } else if (gyms.length > 0) {
-              setCurrentGymState(gyms[0]);
-            }
-          } catch (e) {
-            console.error('Failed to parse stored gyms:', e);
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Failed to restore session:', err);
-    } finally {
-      setLoading(false);
+      const r = await authService.login(username, password);
+      setIsAuthenticated(true);
+      setToken(r.access);
+      setUser(r.user);
+      setGymAccessList(r.gyms);
+      setCurrentGymState(r.gyms[0] || null);
+      return { token: r.access, gyms: r.gyms };
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : '\u062e\u0637\u0627');
+      setIsAuthenticated(false);
+      throw err;
     }
   }, []);
 
-  const login = async (username: string, password: string) => {
-    setError(null);
-    try {
-      const result: LoginResult = await authService.login(username, password);
-
-      const activeToken = result.token || `session_${Date.now()}`;
-      setToken(activeToken);
-      setIsAuthenticated(true);
-      setGymAccessList(result.gyms || []);
-
-      localStorage.setItem(TOKEN_KEY, activeToken);
-      localStorage.setItem(GYMS_KEY, JSON.stringify(result.gyms || []));
-
-      if (result.gyms && result.gyms.length > 0) {
-        const selected = result.gyms[0];
-        setCurrentGymState(selected);
-        localStorage.setItem(CURRENT_GYM_KEY, JSON.stringify(selected));
-      } else {
-        setCurrentGymState(null);
-        localStorage.removeItem(CURRENT_GYM_KEY);
-      }
-
-      return { token: activeToken, gyms: result.gyms };
-    } catch (err: any) {
-      const msg = err.message || 'خطایی در برقراری ارتباط رخ داد.';
-      setError(msg);
-      throw err;
-    }
-  };
-
-  const logout = () => {
+  const logout = useCallback(() => {
     authService.logout();
-    setToken(null);
     setIsAuthenticated(false);
+    setToken(null);
+    setUser(null);
     setGymAccessList([]);
     setCurrentGymState(null);
     setError(null);
-  };
+  }, []);
 
-  const setCurrentGym = (gym: GymStaffAccess) => {
+  const setCurrentGym = useCallback((gym: GymAccess) => {
     setCurrentGymState(gym);
-    localStorage.setItem(CURRENT_GYM_KEY, JSON.stringify(gym));
-  };
+    authService.persistCurrentGym(gym);
+  }, []);
 
-  const clearError = () => setError(null);
+  const refreshGyms = useCallback(async () => {
+    try {
+      const gyms = await authService.fetchMyGyms();
+      setGymAccessList(gyms);
+      if (!gyms.length) { setCurrentGymState(null); return; }
+      setCurrentGymState((prev) => {
+        if (prev) {
+          const s = gyms.find((g) => g.gym === prev.gym);
+          if (s) return s;
+        }
+        authService.persistCurrentGym(gyms[0]);
+        return gyms[0];
+      });
+    } catch { /* keep */ }
+  }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        token,
-        gymAccessList,
-        currentGym,
-        loading,
-        error,
-        login,
-        logout,
-        setCurrentGym,
-        clearError,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const can = useCallback(
+    (code: PermissionCode) => {
+      if (!currentGym) return false;
+      return hasPermission(currentGym.role, undefined, code);
+    },
+    [currentGym]
   );
+
+  const gymId = useMemo(() => (currentGym ? currentGym.gym : null), [currentGym]);
+
+  const value = useMemo(
+    () => ({
+      isAuthenticated, loading, token, user, gymAccessList, currentGym, error,
+      login, logout, setCurrentGym, clearError: () => setError(null), refreshGyms, can, gymId,
+    }),
+    [isAuthenticated, loading, token, user, gymAccessList, currentGym, error, login, logout, setCurrentGym, refreshGyms, can, gymId]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 };
