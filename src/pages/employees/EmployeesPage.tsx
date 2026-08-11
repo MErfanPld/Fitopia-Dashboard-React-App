@@ -48,7 +48,7 @@ export const EmployeesPage: React.FC = () => {
     try {
       setItems(await employeesService.list(gymId));
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : '\u062f\u0631\u06cc\u0627\u0641\u062a \u0627\u0637\u0644\u0627\u0639\u0627\u062a \u0628\u0627 \u062e\u0637\u0627 \u0645\u0648\u0627\u062c\u0647 \u0634\u062f.');
+      setError(e instanceof Error ? e.message : 'دریافت اطلاعات با خطا مواجه شد.');
     } finally {
       setLoading(false);
     }
@@ -79,7 +79,7 @@ export const EmployeesPage: React.FC = () => {
   const save = async () => {
     if (!gymId) return;
     if (!editing && !userId.trim()) {
-      showToast('\u0634\u0646\u0627\u0633\u0647 \u06a9\u0627\u0631\u0628\u0631 (user) \u0627\u0644\u0632\u0627\u0645\u06cc \u0627\u0633\u062a. \u06a9\u0627\u0631\u0645\u0646\u062f \u0628\u0627\u06cc\u062f \u06a9\u0627\u0631\u0628\u0631 \u0645\u0648\u062c\u0648\u062f \u062f\u0631 \u0633\u06cc\u0633\u062a\u0645 \u0628\u0627\u0634\u062f.', 'warning');
+      showToast('شناسه کاربر (user) الزامی است. کارمند باید کاربر موجود در سیستم باشد.', 'warning');
       return;
     }
     setSaving(true);
@@ -90,7 +90,7 @@ export const EmployeesPage: React.FC = () => {
           employee_number: employeeNumber || undefined,
           is_active: isActive,
         });
-        showToast('\u06a9\u0627\u0631\u0645\u0646\u062f \u0628\u0631\u0648\u0632\u0631\u0633\u0627\u0646\u06cc \u0634\u062f.', 'success');
+        showToast('کارمند بروزرسانی شد.', 'success');
       } else {
         await employeesService.create(gymId, {
           user: Number(userId),
@@ -98,28 +98,28 @@ export const EmployeesPage: React.FC = () => {
           employee_number: employeeNumber || undefined,
           is_active: isActive,
         });
-        showToast('\u06a9\u0627\u0631\u0645\u0646\u062f \u062b\u0628\u062a \u0634\u062f.', 'success');
+        showToast('کارمند ثبت شد.', 'success');
       }
       setFormOpen(false);
       load();
     } catch (e: unknown) {
-      showToast(e instanceof Error ? e.message : '\u062e\u0637\u0627 \u062f\u0631 \u0630\u062e\u06cc\u0631\u0647', 'danger');
+      showToast(e instanceof Error ? e.message : 'خطا در ذخیره', 'danger');
     } finally {
       setSaving(false);
     }
   };
 
   const columns: Column<StaffEmployee>[] = [
-    { key: 'username', header: '\u06a9\u0627\u0631\u0628\u0631', render: (r) => <span className="text-white">{r.username || r.user}</span> },
-    { key: 'user_phone', header: '\u062a\u0644\u0641\u0646', render: (r) => <span className="text-slate-300">{r.user_phone || '\u2014'}</span> },
+    { key: 'username', header: 'کاربر', render: (r) => <span className="text-ink">{r.username || r.user}</span> },
+    { key: 'user_phone', header: 'تلفن', render: (r) => <span className="text-muted">{r.user_phone || '—'}</span> },
     {
       key: 'role',
-      header: '\u0646\u0642\u0634',
-      render: (r) => <span className="text-slate-200">{ROLE_LABELS[r.role as StaffRole] || r.role}</span>,
+      header: 'نقش',
+      render: (r) => <span className="text-secondary">{ROLE_LABELS[r.role as StaffRole] || r.role}</span>,
     },
     {
       key: 'is_active',
-      header: '\u0648\u0636\u0639\u06cc\u062a',
+      header: 'وضعیت',
       render: (r) => <StatusBadge status={r.is_active ? 'active' : 'inactive'} />,
     },
   ];
@@ -127,7 +127,7 @@ export const EmployeesPage: React.FC = () => {
   if (!hasGym) {
     return (
       <div className="space-y-6">
-        <Header title="\u06a9\u0627\u0631\u06a9\u0646\u0627\u0646" />
+        <Header title="کارکنان" />
         <NoGymSelected />
       </div>
     );
@@ -135,8 +135,8 @@ export const EmployeesPage: React.FC = () => {
   if (!can('employee.view')) {
     return (
       <div className="space-y-6">
-        <Header title="\u06a9\u0627\u0631\u06a9\u0646\u0627\u0646" />
-        <EmptyState title="\u062f\u0633\u062a\u0631\u0633\u06cc \u0646\u062f\u0627\u0631\u06cc\u062f" description="\u0645\u062c\u0648\u0632 \u0645\u0634\u0627\u0647\u062f\u0647 \u06a9\u0627\u0631\u06a9\u0646\u0627\u0646 \u0628\u0631\u0627\u06cc \u0646\u0642\u0634 \u0634\u0645\u0627 \u0641\u0639\u0627\u0644 \u0646\u06cc\u0633\u062a." />
+        <Header title="کارکنان" />
+        <EmptyState title="دسترسی ندارید" description="مجوز مشاهده کارکنان برای نقش شما فعال نیست." />
       </div>
     );
   }
@@ -144,21 +144,21 @@ export const EmployeesPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <Header
-        title="\u06a9\u0627\u0631\u06a9\u0646\u0627\u0646"
-        subtitle="\u06a9\u0627\u0631\u0645\u0646\u062f\u0627\u0646 \u0648 \u062f\u0633\u062a\u0631\u0633\u06cc\u200c\u0647\u0627\u06cc \u0628\u0627\u0634\u06af\u0627\u0647 \u2014 \u0627\u06cc\u062c\u0627\u062f \u06a9\u0627\u0631\u0645\u0646\u062f \u0646\u06cc\u0627\u0632\u0645\u0646\u062f \u0634\u0646\u0627\u0633\u0647 \u06a9\u0627\u0631\u0628\u0631 \u0645\u0648\u062c\u0648\u062f \u062f\u0631 \u0633\u06cc\u0633\u062a\u0645 \u0627\u0633\u062a"
+        title="کارکنان"
+        subtitle="مدیریت کارمندان و دسترسی‌ها"
         onQuickAction={can('employee.manage') ? openCreate : undefined}
-        quickActionLabel={can('employee.manage') ? '\u06a9\u0627\u0631\u0645\u0646\u062f \u062c\u062f\u06cc\u062f' : undefined}
+        quickActionLabel={can('employee.manage') ? 'کارمند جدید' : undefined}
       />
       <div className="flex justify-end">
-        <button type="button" onClick={load} className="inline-flex items-center gap-2 px-3 py-2 text-sm border border-[#2A2A2A] rounded-lg text-slate-300">
+        <button type="button" onClick={load} className="inline-flex items-center gap-2 px-3 py-2 text-sm border border-border rounded-lg text-muted">
           <RefreshCw className="w-4 h-4" />
-          \u0628\u0631\u0648\u0632\u0631\u0633\u0627\u0646\u06cc
+          بروزرسانی
         </button>
       </div>
       {loading && <LoadingBlock />}
       {error && <ErrorBlock message={error} onRetry={load} />}
       {!loading && !error && items.length === 0 && (
-        <EmptyState title="\u06a9\u0627\u0631\u0645\u0646\u062f\u06cc \u062b\u0628\u062a \u0646\u0634\u062f\u0647" description="\u0628\u0631\u0627\u06cc \u0627\u0641\u0632\u0648\u062f\u0646 \u06a9\u0627\u0631\u0645\u0646\u062f\u060c \u0634\u0646\u0627\u0633\u0647 \u06a9\u0627\u0631\u0628\u0631 \u0645\u0648\u062c\u0648\u062f \u062f\u0631 \u0633\u06cc\u0633\u062a\u0645 \u0641\u06cc\u062a\u0648\u067e\u06cc\u0627 \u0644\u0627\u0632\u0645 \u0627\u0633\u062a." />
+        <EmptyState title="کارمندی ثبت نشده" description="برای افزودن کارمند، شناسه کاربر موجود در سیستم فیتوپیا لازم است." />
       )}
       {!loading && !error && items.length > 0 && (
         <DataTable
@@ -168,13 +168,13 @@ export const EmployeesPage: React.FC = () => {
           actions={(r) =>
             can('employee.manage') ? (
               <div className="flex items-center gap-1">
-                <button type="button" className="p-1.5 text-slate-400 hover:text-[#FF9D4D]" title="\u0648\u06cc\u0631\u0627\u06cc\u0634" onClick={() => openEdit(r)}>
+                <button type="button" className="p-1.5 text-muted hover:text-primary" title="ویرایش" onClick={() => openEdit(r)}>
                   <Edit3 className="w-4 h-4" />
                 </button>
-                <button type="button" className="p-1.5 text-slate-400 hover:text-[#FF9D4D]" title="\u0645\u062c\u0648\u0632\u0647\u0627" onClick={() => { setPermTarget(r); setCodes((r.permission_codes || []) as PermissionCode[]); }}>
+                <button type="button" className="p-1.5 text-muted hover:text-primary" title="مجوزها" onClick={() => { setPermTarget(r); setCodes((r.permission_codes || []) as PermissionCode[]); }}>
                   <Shield className="w-4 h-4" />
                 </button>
-                <button type="button" className="p-1.5 text-slate-400 hover:text-red-400" title="\u062d\u0630\u0641" onClick={() => setDeleting(r)}>
+                <button type="button" className="p-1.5 text-muted hover:text-danger-text" title="حذف" onClick={() => setDeleting(r)}>
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -183,63 +183,86 @@ export const EmployeesPage: React.FC = () => {
         />
       )}
 
-      <Modal isOpen={formOpen} onClose={() => setFormOpen(false)} title={editing ? '\u0648\u06cc\u0631\u0627\u06cc\u0634 \u06a9\u0627\u0631\u0645\u0646\u062f' : '\u06a9\u0627\u0631\u0645\u0646\u062f \u062c\u062f\u06cc\u062f'}>
+      <Modal isOpen={formOpen} onClose={() => setFormOpen(false)} title={editing ? 'ویرایش کارمند' : 'کارمند جدید'}>
         <div className="space-y-4">
           {!editing && (
-            <FormField label="\u0634\u0646\u0627\u0633\u0647 \u06a9\u0627\u0631\u0628\u0631 (user id)" type="number" required value={userId} onChange={(e) => setUserId(e.target.value)} helpText="\u0628\u0627\u06cc\u062f \u06a9\u0627\u0631\u0628\u0631 \u0645\u0648\u062c\u0648\u062f \u062f\u0631 \u0633\u06cc\u0633\u062a\u0645 \u0628\u0627\u0634\u062f." />
+            <FormField label="شناسه کاربر (user id)" required type="number" value={userId} onChange={(e) => setUserId(e.target.value)} helpText="شناسه کاربر موجود در سیستم فیتوپیا" />
           )}
-          <FormField label="\u0646\u0642\u0634" isSelect value={role} onChange={(e) => setRole(e.target.value)} options={ROLE_OPTIONS} />
-          <FormField label="\u06a9\u062f \u067e\u0631\u0633\u0646\u0644\u06cc" value={employeeNumber} onChange={(e) => setEmployeeNumber(e.target.value)} />
-          <label className="flex items-center gap-2 text-sm text-slate-300">
-            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="rounded border-[#333]" />
-            \u0641\u0639\u0627\u0644
+          <FormField label="نقش" isSelect value={role} onChange={(e) => setRole(e.target.value)} options={ROLE_OPTIONS} />
+          <FormField label="کد پرسنلی" value={employeeNumber} onChange={(e) => setEmployeeNumber(e.target.value)} />
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="accent-primary" />
+            فعال
           </label>
-          <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setFormOpen(false)} className="px-4 py-2 text-sm text-slate-300">\u0627\u0646\u0635\u0631\u0627\u0641</button>
-            <button type="button" disabled={saving} onClick={save} className="px-4 py-2 text-sm bg-[#FF7A1A] text-white rounded-lg disabled:opacity-50">{saving ? '...' : '\u0630\u062e\u06cc\u0631\u0647'}</button>
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setFormOpen(false)} className="px-4 py-2 text-sm text-muted">انصراف</button>
+            <button type="button" disabled={saving} onClick={save} className="px-4 py-2 text-sm bg-primary text-[#0B0B0F] font-bold rounded-lg disabled:opacity-50">
+              {saving ? '...' : 'ذخیره'}
+            </button>
           </div>
         </div>
       </Modal>
 
-      <Modal isOpen={!!permTarget} onClose={() => setPermTarget(null)} title="\u062a\u0646\u0638\u06cc\u0645 \u0645\u062c\u0648\u0632\u0647\u0627">
+      <Modal isOpen={!!permTarget} onClose={() => setPermTarget(null)} title="تنظیم مجوزها">
         <div className="space-y-3 max-h-80 overflow-y-auto">
           {ALL_PERMISSIONS.map((code) => (
-            <label key={code} className="flex items-center gap-2 text-sm text-slate-300">
-              <input type="checkbox" checked={codes.includes(code)} onChange={(e) => { setCodes((prev) => (e.target.checked ? [...prev, code] : prev.filter((c) => c !== code))); }} className="rounded border-[#333]" />
-              {PERMISSION_LABELS[code]}
+            <label key={code} className="flex items-center gap-2 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={codes.includes(code)}
+                onChange={(e) => {
+                  setCodes((prev) => e.target.checked ? [...prev, code] : prev.filter((c) => c !== code));
+                }}
+                className="accent-primary"
+              />
+              {PERMISSION_LABELS[code] || code}
             </label>
           ))}
         </div>
-        <div className="flex justify-end gap-2 mt-4">
-          <button type="button" onClick={() => setPermTarget(null)} className="px-4 py-2 text-sm text-slate-300">\u0627\u0646\u0635\u0631\u0627\u0641</button>
-          <button type="button" disabled={saving} className="px-4 py-2 text-sm bg-[#FF7A1A] text-white rounded-lg" onClick={async () => {
-            if (!gymId || !permTarget) return;
-            setSaving(true);
-            try {
-              await employeesService.setPermissions(gymId, permTarget.id, codes);
-              showToast('\u0645\u062c\u0648\u0632\u0647\u0627 \u0630\u062e\u06cc\u0631\u0647 \u0634\u062f', 'success');
-              setPermTarget(null);
-              load();
-            } catch (e: unknown) {
-              showToast(e instanceof Error ? e.message : '\u062e\u0637\u0627', 'danger');
-            } finally {
-              setSaving(false);
-            }
-          }}>\u0630\u062e\u06cc\u0631\u0647</button>
+        <div className="flex justify-end gap-2 pt-4">
+          <button type="button" onClick={() => setPermTarget(null)} className="px-4 py-2 text-sm text-muted">انصراف</button>
+          <button
+            type="button"
+            disabled={saving}
+            className="px-4 py-2 text-sm bg-primary text-[#0B0B0F] font-bold rounded-lg"
+            onClick={async () => {
+              if (!gymId || !permTarget) return;
+              setSaving(true);
+              try {
+                await employeesService.setPermissions(gymId, permTarget.id, codes);
+                showToast('مجوزها ذخیره شد', 'success');
+                setPermTarget(null);
+                load();
+              } catch (e: unknown) {
+                showToast(e instanceof Error ? e.message : 'خطا', 'danger');
+              } finally {
+                setSaving(false);
+              }
+            }}
+          >ذخیره</button>
         </div>
       </Modal>
 
-      <ConfirmDeleteModal isOpen={!!deleting} onClose={() => setDeleting(null)} itemName={deleting?.username || String(deleting?.user || '')} onConfirm={async () => {
-        if (!gymId || !deleting) return;
-        try {
-          await employeesService.remove(gymId, deleting.id);
-          showToast('\u062d\u0630\u0641 \u0634\u062f', 'success');
-          setDeleting(null);
-          load();
-        } catch (e: unknown) {
-          showToast(e instanceof Error ? e.message : '\u062e\u0637\u0627', 'danger');
-        }
-      }} />
+      <ConfirmDeleteModal
+        isOpen={!!deleting}
+        onClose={() => setDeleting(null)}
+        itemName={deleting?.username || String(deleting?.id || '')}
+        loading={saving}
+        onConfirm={async () => {
+          if (!gymId || !deleting) return;
+          setSaving(true);
+          try {
+            await employeesService.remove(gymId, deleting.id);
+            showToast('حذف شد', 'success');
+            setDeleting(null);
+            load();
+          } catch (e: unknown) {
+            showToast(e instanceof Error ? e.message : 'خطا', 'danger');
+          } finally {
+            setSaving(false);
+          }
+        }}
+      />
     </div>
   );
 };
