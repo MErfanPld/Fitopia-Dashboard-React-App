@@ -56,22 +56,22 @@ export function DataTable<T>({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={searchPlaceholder}
-            className="w-full rounded-xl border border-line bg-surface pr-10 pl-3 py-2.5 text-sm text-ink
-              placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            className="w-full rounded-xl border border-border bg-surface pr-10 pl-3 py-2.5 text-sm text-ink
+              placeholder:text-muted-2 focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary"
           />
         </div>
       )}
 
       {!filtered.length ? (
-        <div className="bg-surface border border-line rounded-2xl p-10 text-center text-sm text-muted">
+        <div className="bg-surface border border-border rounded-2xl p-10 text-center text-sm text-muted">
           {emptyMessage}
         </div>
       ) : (
-        <div className="bg-surface border border-line rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-surface border border-border rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-right">
               <thead>
-                <tr className="bg-canvas border-b border-line">
+                <tr className="bg-surface-elevated border-b border-border">
                   {columns.map((col) => (
                     <th
                       key={col.key}
@@ -89,7 +89,7 @@ export function DataTable<T>({
                 {filtered.map((row, index) => (
                   <tr
                     key={getKey(row, index)}
-                    className="border-b border-line last:border-0 hover:bg-canvas/60 transition-colors"
+                    className="border-b border-border last:border-0 hover:bg-surface-hover/60 transition-colors"
                   >
                     {columns.map((col) => (
                       <td

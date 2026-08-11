@@ -1,70 +1,50 @@
 import React from 'react';
-import { LucideIcon, TrendingUp, TrendingDown } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
+type Accent = 'orange' | 'emerald' | 'blue' | 'purple' | 'primary';
+
+const accentMap: Record<Accent, { iconBg: string; iconColor: string }> = {
+  orange: { iconBg: 'bg-primary/15', iconColor: 'text-primary' },
+  primary: { iconBg: 'bg-primary/15', iconColor: 'text-primary' },
+  emerald: { iconBg: 'bg-success/15', iconColor: 'text-success' },
+  blue: { iconBg: 'bg-info/15', iconColor: 'text-info' },
+  purple: { iconBg: 'bg-purple-500/15', iconColor: 'text-purple-400' },
+};
 
 interface StatCardProps {
   title: string;
-  value: string | number;
+  value: string;
   change?: number;
   changePeriod?: string;
   icon: LucideIcon;
-  subtext?: string;
-  accentColor?: 'orange' | 'emerald' | 'blue' | 'purple';
+  accentColor?: Accent;
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
   title,
   value,
   change,
-  changePeriod = 'نسبت به ماه گذشته',
+  changePeriod,
   icon: Icon,
-  subtext,
-  accentColor = 'orange',
+  accentColor = 'primary',
 }) => {
-  const isPositive = change !== undefined && change >= 0;
-
-  const iconBgMap = {
-    orange: 'bg-[#FF7A1A]/10 text-[#FF7A1A] border-[#FF7A1A]/20',
-    emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    purple: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-  };
-
+  const a = accentMap[accentColor] || accentMap.primary;
   return (
-    <div className="bg-[#1A1A1A] border border-[#262626] rounded-2xl p-5 hover:border-[#383838] transition-all duration-200 group relative overflow-hidden">
-      {/* Glow Effect */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#FF7A1A]/5 to-transparent rounded-full blur-2xl pointer-events-none group-hover:from-[#FF7A1A]/10 transition-all" />
-
-      <div className="flex items-start justify-between">
-        <div>
-          <span className="text-xs font-semibold text-slate-400">{title}</span>
-          <div className="text-2xl md:text-3xl font-black text-white mt-1.5 tracking-tight">
-            {value}
-          </div>
+    <div className="bg-surface border border-border rounded-2xl p-5 shadow-sm hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-200">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-muted mb-1.5 truncate">{title}</p>
+          <p className="text-2xl font-extrabold text-ink tracking-tight truncate">{value}</p>
+          {change != null && (
+            <p className={`text-[11px] mt-1.5 font-semibold ${change >= 0 ? 'text-success' : 'text-danger'}`}>
+              {change >= 0 ? '↑' : '↓'} {Math.abs(change)}٪
+              {changePeriod && <span className="text-muted font-normal mr-1">{changePeriod}</span>}
+            </p>
+          )}
         </div>
-
-        <div className={`p-3 rounded-xl border ${iconBgMap[accentColor]} transition-transform duration-200 group-hover:scale-110`}>
-          <Icon className="w-6 h-6" />
+        <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${a.iconBg}`}>
+          <Icon className={`w-5 h-5 ${a.iconColor}`} />
         </div>
-      </div>
-
-      <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#262626] text-xs">
-        {change !== undefined ? (
-          <div className="flex items-center gap-1.5">
-            <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold dir-ltr ${
-                isPositive
-                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-red-500/15 text-red-400 border border-red-500/30'
-              }`}
-            >
-              {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-              {Math.abs(change)}%
-            </span>
-            <span className="text-slate-400 text-[11px]">{changePeriod}</span>
-          </div>
-        ) : (
-          <span className="text-slate-400 text-[11px]">{subtext || 'بروزرسانی لحظه‌ای'}</span>
-        )}
       </div>
     </div>
   );

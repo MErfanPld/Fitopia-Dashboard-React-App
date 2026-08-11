@@ -7,7 +7,7 @@ export const ProtectedRoute: React.FC<{ children?: React.ReactNode }> = ({ child
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-canvas flex items-center justify-center text-ink font-sans" dir="rtl">
+      <div className="min-h-screen bg-background flex items-center justify-center text-ink font-sans" dir="rtl">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
           <span className="text-xs text-muted">در حال بررسی اطلاعات احراز هویت...</span>
@@ -28,7 +28,7 @@ export const PublicOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ child
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-canvas flex items-center justify-center text-ink font-sans" dir="rtl">
+      <div className="min-h-screen bg-background flex items-center justify-center text-ink font-sans" dir="rtl">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
           <span className="text-xs text-muted">در حال بارگذاری...</span>
