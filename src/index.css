@@ -13,7 +13,7 @@
   --fitopia-input-focus: #181820;
   --fitopia-border: #27272F;
   --fitopia-border-hover: #3F3F46;
-  --fitopia-ink: #F5F5F5;
+  --fitopia-ink: #FFFFFF;
   --fitopia-secondary: #D4D4D8;
   --fitopia-muted: #A1A1AA;
   --fitopia-disabled: #52525B;
@@ -54,8 +54,8 @@
   --fitopia-input-focus: #FFFFFF;
   --fitopia-border: #E4E4E7;
   --fitopia-border-hover: #D4D4D8;
-  --fitopia-ink: #18181B;
-  --fitopia-secondary: #3F3F46;
+  --fitopia-ink: #000000;
+  --fitopia-secondary: #27272A;
   --fitopia-muted: #71717A;
   --fitopia-disabled: #A1A1AA;
   --fitopia-primary: #FF7A1A;
