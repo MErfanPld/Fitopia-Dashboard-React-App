@@ -36,10 +36,10 @@
   --fitopia-info-soft: rgba(59, 130, 246, 0.12);
   --fitopia-info-text: #60A5FA;
   --fitopia-skeleton: #1F1F26;
-  --fitopia-overlay: rgba(0, 0, 0, 0.70);
+  --fitopia-overlay: rgba(0, 0, 0, 0.65);
   --fitopia-scrollbar: #3f3f46;
   --fitopia-scrollbar-hover: #52525b;
-  --fitopia-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --fitopia-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   --fitopia-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
@@ -61,26 +61,26 @@
   --fitopia-primary: #FF7A1A;
   --fitopia-primary-hover: #E56A00;
   --fitopia-primary-active: #C45E00;
-  --fitopia-primary-soft: rgba(255, 122, 26, 0.10);
-  --fitopia-primary-soft-hover: rgba(255, 122, 26, 0.06);
+  --fitopia-primary-soft: rgba(255, 122, 26, 0.12);
+  --fitopia-primary-soft-hover: rgba(255, 122, 26, 0.08);
   --fitopia-primary-fg: #0B0B0F;
   --fitopia-success: #16A34A;
-  --fitopia-success-soft: rgba(22, 163, 74, 0.10);
+  --fitopia-success-soft: rgba(22, 163, 74, 0.12);
   --fitopia-success-text: #15803D;
   --fitopia-warning: #D97706;
-  --fitopia-warning-soft: rgba(217, 119, 6, 0.10);
+  --fitopia-warning-soft: rgba(217, 119, 6, 0.12);
   --fitopia-warning-text: #B45309;
   --fitopia-danger: #DC2626;
-  --fitopia-danger-soft: rgba(220, 38, 38, 0.10);
+  --fitopia-danger-soft: rgba(220, 38, 38, 0.12);
   --fitopia-danger-text: #B91C1C;
   --fitopia-info: #2563EB;
-  --fitopia-info-soft: rgba(37, 99, 235, 0.10);
+  --fitopia-info-soft: rgba(37, 99, 235, 0.12);
   --fitopia-info-text: #1D4ED8;
   --fitopia-skeleton: #E4E4E7;
-  --fitopia-overlay: rgba(15, 15, 20, 0.45);
+  --fitopia-overlay: rgba(24, 24, 27, 0.40);
   --fitopia-scrollbar: #D4D4D8;
   --fitopia-scrollbar-hover: #A1A1AA;
-  --fitopia-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  --fitopia-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   --fitopia-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
@@ -129,11 +129,24 @@
     direction: rtl;
   }
 
+  html.theme-animate,
+  html.theme-animate *,
+  html.theme-animate *::before,
+  html.theme-animate *::after {
+    transition:
+      background-color 0.28s ease,
+      border-color 0.28s ease,
+      color 0.28s ease,
+      fill 0.28s ease,
+      stroke 0.28s ease,
+      box-shadow 0.28s ease,
+      opacity 0.28s ease !important;
+  }
+
   body {
     @apply bg-background text-ink font-sans antialiased;
     margin: 0;
     min-height: 100vh;
-    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   #root {
@@ -169,13 +182,25 @@
   textarea {
     color-scheme: inherit;
   }
+}
 
-  .bg-background,
-  .bg-surface,
-  .bg-surface-elevated,
-  .bg-sidebar,
-  .bg-header,
-  .bg-input {
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+@keyframes fitopia-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes fitopia-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.fitopia-modal-panel {
+  animation: fitopia-modal-in 0.22s ease-out;
+}
+.fitopia-modal-overlay {
+  animation: fitopia-overlay-in 0.2s ease-out;
 }

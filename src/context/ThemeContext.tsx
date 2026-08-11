@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 
@@ -31,12 +32,20 @@ function resolveTheme(mode: ThemeMode): ResolvedTheme {
   return mode;
 }
 
-function applyDomTheme(resolved: ResolvedTheme) {
+function applyDomTheme(resolved: ResolvedTheme, animate: boolean) {
   const root = document.documentElement;
+  if (animate) {
+    root.classList.add('theme-animate');
+  }
   root.setAttribute('data-theme', resolved);
   root.classList.remove('dark', 'light');
   root.classList.add(resolved);
   root.style.colorScheme = resolved;
+  if (animate) {
+    window.setTimeout(() => {
+      root.classList.remove('theme-animate');
+    }, 320);
+  }
 }
 
 function readStoredTheme(): ThemeMode {
@@ -54,11 +63,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() =>
     resolveTheme(readStoredTheme()),
   );
+  const isFirst = useRef(true);
 
   useEffect(() => {
     const resolved = resolveTheme(theme);
     setResolvedTheme(resolved);
-    applyDomTheme(resolved);
+    applyDomTheme(resolved, !isFirst.current);
+    isFirst.current = false;
     try {
       localStorage.setItem(STORAGE_KEY, theme);
     } catch {
@@ -72,7 +83,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const onChange = () => {
       const resolved = getSystemTheme();
       setResolvedTheme(resolved);
-      applyDomTheme(resolved);
+      applyDomTheme(resolved, true);
     };
     mq.addEventListener('change', onChange);
     return () => mq.removeEventListener('change', onChange);

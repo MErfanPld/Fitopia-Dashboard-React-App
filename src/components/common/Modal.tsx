@@ -34,13 +34,13 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 backdrop-blur-sm"
+        className="absolute inset-0 backdrop-blur-sm fitopia-modal-overlay"
         style={{ background: 'var(--fitopia-overlay)' }}
         onClick={onClose}
         aria-hidden
       />
       <div
-        className={`relative w-full ${sizeMap[size]} bg-surface border border-border rounded-2xl overflow-hidden transition-colors duration-200`}
+        className={`relative w-full ${sizeMap[size]} bg-surface border border-border rounded-2xl overflow-hidden fitopia-modal-panel`}
         style={{ boxShadow: 'var(--fitopia-shadow)' }}
         role="dialog"
         aria-modal="true"
@@ -58,7 +58,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
             </button>
           </div>
         )}
-        <div className="p-4 sm:p-6 max-h-[80vh] overflow-y-auto text-ink">{children}</div>
+        <div className="p-4 sm:p-6 max-h-[80vh] overflow-y-auto text-ink bg-surface">{children}</div>
       </div>
     </div>
   );
