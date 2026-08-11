@@ -1,27 +1,65 @@
 @import "tailwindcss";
 
-/* Fitopia Gym Owner Dashboard — Dark + Orange Design Tokens */
+:root,
+[data-theme="dark"] {
+  --fitopia-background: #0B0B0F;
+  --fitopia-surface: #121218;
+  --fitopia-surface-elevated: #181820;
+  --fitopia-surface-hover: #1F1F27;
+  --fitopia-border: #27272A;
+  --fitopia-ink: #FFFFFF;
+  --fitopia-muted: #A1A1AA;
+  --fitopia-muted-2: #71717A;
+  --fitopia-primary: #FF8A1D;
+  --fitopia-primary-hover: #FF9F43;
+  --fitopia-primary-dark: #D96F00;
+  --fitopia-success: #22C55E;
+  --fitopia-danger: #EF4444;
+  --fitopia-warning: #F59E0B;
+  --fitopia-info: #3B82F6;
+  --fitopia-scrollbar: #3f3f46;
+  --fitopia-scrollbar-hover: #52525b;
+}
+
+[data-theme="light"] {
+  --fitopia-background: #F7F7F8;
+  --fitopia-surface: #FFFFFF;
+  --fitopia-surface-elevated: #FFFFFF;
+  --fitopia-surface-hover: #F4F4F5;
+  --fitopia-border: #E4E4E7;
+  --fitopia-ink: #18181B;
+  --fitopia-muted: #71717A;
+  --fitopia-muted-2: #A1A1AA;
+  --fitopia-primary: #FF8A1D;
+  --fitopia-primary-hover: #E96F00;
+  --fitopia-primary-dark: #C45E00;
+  --fitopia-success: #16A34A;
+  --fitopia-danger: #DC2626;
+  --fitopia-warning: #D97706;
+  --fitopia-info: #2563EB;
+  --fitopia-scrollbar: #D4D4D8;
+  --fitopia-scrollbar-hover: #A1A1AA;
+}
+
 @theme {
-  --color-background: #0B0B0F;
-  --color-surface: #121217;
-  --color-surface-elevated: #18181F;
-  --color-surface-hover: #1F1F27;
-  --color-border: #292932;
-  --color-ink: #FFFFFF;
-  --color-muted: #A1A1AA;
-  --color-muted-2: #71717A;
-  --color-primary: #FF8A1D;
-  --color-primary-hover: #FF9F3D;
-  --color-primary-dark: #D96F00;
-  --color-success: #22C55E;
-  --color-danger: #EF4444;
-  --color-warning: #F59E0B;
-  --color-info: #3B82F6;
-
-  --color-canvas: #0B0B0F;
-  --color-line: #292932;
-  --color-accent: #FF9F3D;
-
+  --color-background: var(--fitopia-background);
+  --color-surface: var(--fitopia-surface);
+  --color-surface-elevated: var(--fitopia-surface-elevated);
+  --color-surface-hover: var(--fitopia-surface-hover);
+  --color-border: var(--fitopia-border);
+  --color-ink: var(--fitopia-ink);
+  --color-muted: var(--fitopia-muted);
+  --color-muted-2: var(--fitopia-muted-2);
+  --color-primary: var(--fitopia-primary);
+  --color-primary-hover: var(--fitopia-primary-hover);
+  --color-primary-dark: var(--fitopia-primary-dark);
+  --color-success: var(--fitopia-success);
+  --color-danger: var(--fitopia-danger);
+  --color-warning: var(--fitopia-warning);
+  --color-info: var(--fitopia-info);
+  --color-canvas: var(--fitopia-background);
+  --color-line: var(--fitopia-border);
+  --color-accent: var(--fitopia-primary-hover);
   --font-sans: "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -34,6 +72,7 @@
     @apply bg-background text-ink font-sans antialiased;
     margin: 0;
     min-height: 100vh;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   #root {
@@ -41,11 +80,11 @@
   }
 
   * {
-    border-color: var(--color-border);
+    border-color: var(--fitopia-border);
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--color-primary) 35%, transparent);
+    background: color-mix(in srgb, var(--fitopia-primary) 35%, transparent);
     color: #fff;
   }
 
@@ -57,14 +96,16 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #3f3f46;
+    background: var(--fitopia-scrollbar);
     border-radius: 999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #52525b;
+    background: var(--fitopia-scrollbar-hover);
   }
 
-  input, select, textarea {
-    color-scheme: dark;
+  input,
+  select,
+  textarea {
+    color-scheme: inherit;
   }
 }
