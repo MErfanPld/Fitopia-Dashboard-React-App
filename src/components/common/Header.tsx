@@ -1,35 +1,49 @@
 import React from 'react';
-import { Menu, Plus } from 'lucide-react';
+import { Menu, RefreshCw } from 'lucide-react';
 import { useUI } from '../../context/UIContext';
-import { useAuth } from '../../context/AuthContext';
+import { Button } from '../ui/Button';
 
 interface HeaderProps {
-  title?: string;
+  title: string;
   subtitle?: string;
-  onQuickAction?: () => void;
   quickActionLabel?: string;
+  onQuickAction?: () => void;
+  actions?: React.ReactNode;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, subtitle, onQuickAction, quickActionLabel }) => {
+export const Header: React.FC<HeaderProps> = ({
+  title,
+  subtitle,
+  quickActionLabel,
+  onQuickAction,
+  actions,
+}) => {
   const { toggleMobileMenu } = useUI();
-  const { currentGym } = useAuth();
+
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
       <div className="flex items-start gap-3">
-        <button type="button" onClick={toggleMobileMenu} className="lg:hidden p-2 rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] text-slate-300">
+        <button
+          type="button"
+          onClick={toggleMobileMenu}
+          className="lg:hidden mt-1 p-2 rounded-xl border border-line bg-surface text-muted hover:text-ink hover:bg-canvas"
+          aria-label="منو"
+        >
           <Menu className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">{title}</h1>
-          {subtitle && <p className="text-sm text-slate-400 mt-0.5">{subtitle}</p>}
-          {currentGym && <p className="text-[11px] text-[#FF9D4D] mt-1 font-medium">{currentGym.gym_name}</p>}
+          <h1 className="text-2xl md:text-[28px] font-extrabold text-ink tracking-tight">{title}</h1>
+          {subtitle && <p className="text-sm text-muted mt-1">{subtitle}</p>}
         </div>
       </div>
-      {onQuickAction && quickActionLabel && (
-        <button type="button" onClick={onQuickAction} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-l from-[#FF7A1A] to-[#FF9D4D] text-white text-sm font-semibold shadow-lg shadow-[#FF7A1A]/20">
-          <Plus className="w-4 h-4" />{quickActionLabel}
-        </button>
-      )}
+      <div className="flex items-center gap-2 flex-wrap">
+        {actions}
+        {onQuickAction && (
+          <Button variant="secondary" size="sm" onClick={onQuickAction} leftIcon={<RefreshCw className="w-3.5 h-3.5" />}>
+            {quickActionLabel || 'بروزرسانی'}
+          </Button>
+        )}
+      </div>
     </div>
   );
 };
