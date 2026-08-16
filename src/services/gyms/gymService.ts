@@ -1,7 +1,18 @@
 import api, { unwrapList, getErrorMessage } from '../apiClient';
-import type { GymUpdatePayload, GymChangeRequest } from '../../types/api';
+import type { GymAccess, GymUpdatePayload, GymChangeRequest } from '../../types/api';
 
 export const gymService = {
+  /** OpenAPI: GET /api/gym-panel/gyms/ → GymStaffAccess[] */
+  async listMine(): Promise<GymAccess[]> {
+    const { data } = await api.get('/gym-panel/gyms/');
+    return unwrapList<GymAccess>(data).map((g) => ({
+      id: g.id,
+      gym: g.gym,
+      gym_name: g.gym_name,
+      gym_address: (g as GymAccess).gym_address,
+      role: g.role,
+    }));
+  },
   async update(gymId: number, payload: GymUpdatePayload): Promise<unknown> {
     try {
       const { data } = await api.patch(`/gym-panel/gyms/${gymId}/update/`, payload);
