@@ -30,15 +30,13 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
 export const ALL_PERMISSIONS = Object.keys(PERMISSION_LABELS) as PermissionCode[];
 
 export interface GymAccess { id: number; gym: number; gym_name: string; gym_address?: string; role: StaffRole | string; }
-export interface AuthUser { id: number; username?: string; phone_number?: string; full_name?: string; email?: string; is_staff_user?: boolean; [k: string]: unknown; }
+export interface AuthUser { id: number; username?: string; full_name?: string; phone?: string; }
 export interface LoginResponse { tokens: { access: string; refresh: string }; user: AuthUser; gyms: GymAccess[]; }
 
 export interface GymMember {
-  id: number; gym?: number; full_name: string; phone: string; sport?: number | null; sport_name?: string;
-  coach?: number | null; sessions_total?: number | null; sessions_remaining?: number | null;
-  sessions_used?: number | null; sessions_remaining_calc?: number | null; price_paid?: number | null;
-  join_date?: string; membership_status?: string; membership_type?: string; membership_start?: string | null;
-  membership_end?: string | null; notes?: string; is_active?: boolean; last_visit_at?: string | null;
+  id: number; full_name: string; phone: string; sport?: number | null; sport_name?: string; coach?: number | null;
+  sessions_total?: number | null; sessions_remaining?: number | null; price_paid?: number | null;
+  join_date?: string; membership_status?: string; membership_type?: string; notes?: string; is_active?: boolean;
   photo?: string | null; source?: string;
 }
 export interface GymMemberInput {
@@ -73,11 +71,11 @@ export interface Course {
 }
 export interface GymVisit {
   id: number; customer?: number | null; customer_name?: string; guest_name?: string; guest_phone?: string;
-  check_in_at?: string | null; check_out_at?: string | null; is_open?: boolean; method?: string; sport?: number | null;
+  check_in_at?: string | null; check_out_at?: string | null;
 }
 export interface AttendanceStats { today_visits: number; currently_inside: number; month_visits: number; total_visits: number; }
 export interface FinanceTransaction {
-  id: number; type: string; category?: string; amount: number; date: string; description?: string;
+  id: number; type?: string; amount: number; category?: string; description?: string;
   payment_method?: string; status?: string; customer?: number | null; reference_number?: string;
 }
 export interface CustomerPayment {
@@ -118,4 +116,27 @@ export function hasPermission(role: string | undefined, explicit: string[] | und
   if (explicit && explicit.length > 0) return explicit.includes(code);
   const d = ROLE_DEFAULTS[role as StaffRole];
   return d ? d.includes(code) : false;
+}
+
+export interface GymPrice {
+  id: number;
+  sport: number;
+  sport_name: string;
+  session_price?: number | null;
+  monthly_price: number;
+  quarterly_price?: number | null;
+  yearly_price: number;
+}
+
+export interface GymPriceInput {
+  sport: number;
+  session_price?: number | null;
+  monthly_price: number;
+  quarterly_price?: number | null;
+  yearly_price: number;
+}
+
+export interface SuggestNewSportInput {
+  name: string;
+  category_id: number;
 }
