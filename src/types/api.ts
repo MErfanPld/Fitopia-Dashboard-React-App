@@ -30,14 +30,21 @@ export const PERMISSION_LABELS: Record<PermissionCode, string> = {
 export const ALL_PERMISSIONS = Object.keys(PERMISSION_LABELS) as PermissionCode[];
 
 export interface GymAccess { id: number; gym: number; gym_name: string; gym_address?: string; role: StaffRole | string; }
-export interface AuthUser { id: number; username?: string; full_name?: string; phone?: string; }
-export interface LoginResponse { tokens: { access: string; refresh: string }; user: AuthUser; gyms: GymAccess[]; }
+export interface AuthUser { id?: number; username?: string; full_name?: string; phone?: string; phone_number?: string; }
+export interface LoginResponse {
+  tokens?: { access: string; refresh?: string };
+  access?: string;
+  refresh?: string;
+  user?: AuthUser;
+  gyms?: GymAccess[];
+}
 
 export interface GymMember {
   id: number; full_name: string; phone: string; sport?: number | null; sport_name?: string; coach?: number | null;
-  sessions_total?: number | null; sessions_remaining?: number | null; price_paid?: number | null;
-  join_date?: string; membership_status?: string; membership_type?: string; notes?: string; is_active?: boolean;
-  photo?: string | null; source?: string;
+  sessions_total?: number | null; sessions_remaining?: number | null; sessions_remaining_calc?: number | null;
+  price_paid?: number | null; join_date?: string; membership_status?: string; membership_type?: string;
+  notes?: string; is_active?: boolean; source?: string; added_by?: number | null; added_by_name?: string;
+  last_visit_at?: string | null; created_at?: string; updated_at?: string;
 }
 export interface GymMemberInput {
   full_name: string; phone: string; sport?: number | null; coach?: number | null;
@@ -51,7 +58,7 @@ export interface GymCoachInput { full_name: string; specialty?: string; sports?:
 export interface StaffEmployee {
   id: number; user: number; username?: string; user_phone?: string; gym?: number;
   role: StaffRole | string; is_active: boolean; start_date?: string | null; end_date?: string | null;
-  employee_number?: string; permission_codes?: string[]; created_at?: string;
+  employee_number?: string; permission_codes?: string[] | string; created_at?: string;
 }
 export interface StaffEmployeeInput {
   user?: number; role: StaffRole | string; is_active?: boolean;
@@ -65,18 +72,33 @@ export interface GymOffering {
 }
 export interface Course {
   id: number; title: string; sport?: number | null; sport_name?: string; offering?: number | null; coach?: number | null;
-  description?: string; start_date?: string; end_date?: string; start_time?: string; end_time?: string;
-  capacity?: number | null; price?: number | null; status?: string; is_active?: boolean;
+  description?: string; start_date?: string; end_date?: string; start_time?: string | null; end_time?: string | null;
+  days_of_week?: string; capacity?: number | null; price?: number | null; status?: string; is_active?: boolean;
   enrollment_count?: number; remaining_capacity?: number;
 }
 export interface GymVisit {
   id: number; customer?: number | null; customer_name?: string; guest_name?: string; guest_phone?: string;
-  check_in_at?: string | null; check_out_at?: string | null;
+  check_in_at?: string | null; check_out_at?: string | null; is_open?: boolean; method?: string; source?: string;
+  price?: number; sport?: number | null; created_at?: string;
 }
 export interface AttendanceStats { today_visits: number; currently_inside: number; month_visits: number; total_visits: number; }
+
+export interface GymPrice {
+  id: number; sport: number; sport_name: string; session_price?: number | null;
+  monthly_price: number; quarterly_price?: number | null; yearly_price: number;
+}
+export interface GymPriceInput {
+  sport: number; session_price?: number | null; monthly_price: number;
+  quarterly_price?: number | null; yearly_price: number;
+}
+export interface SuggestNewSportInput { name: string; category_id: number; }
+export interface SportCategory { id: number; name: string; }
+export interface Sport { id: number; name: string; category?: number | null; category_name?: string; }
+
 export interface FinanceTransaction {
   id: number; type?: string; amount: number; category?: string; description?: string;
   payment_method?: string; status?: string; customer?: number | null; reference_number?: string;
+  date?: string; created_at?: string;
 }
 export interface CustomerPayment {
   id: number; customer: number; total_price: number; amount_paid: number; discount?: number;
@@ -89,8 +111,8 @@ export interface Refund {
 export interface FinanceReport {
   daily: { income: number; expense: number; net: number };
   monthly: { income: number; expense: number; net: number };
-  income_by_category: { category: string; total: number }[];
-  outstanding_balances: { customer_id: number; customer_name: string; remaining: number; payment_id: number }[];
+  income_by_category?: { category: string; total: number }[];
+  outstanding_balances?: { customer_id: number; customer_name: string; remaining: number; payment_id: number }[];
 }
 export interface SingleSession {
   id: number; customer: number; sport?: number | null; price: number; status?: string;
@@ -116,27 +138,4 @@ export function hasPermission(role: string | undefined, explicit: string[] | und
   if (explicit && explicit.length > 0) return explicit.includes(code);
   const d = ROLE_DEFAULTS[role as StaffRole];
   return d ? d.includes(code) : false;
-}
-
-export interface GymPrice {
-  id: number;
-  sport: number;
-  sport_name: string;
-  session_price?: number | null;
-  monthly_price: number;
-  quarterly_price?: number | null;
-  yearly_price: number;
-}
-
-export interface GymPriceInput {
-  sport: number;
-  session_price?: number | null;
-  monthly_price: number;
-  quarterly_price?: number | null;
-  yearly_price: number;
-}
-
-export interface SuggestNewSportInput {
-  name: string;
-  category_id: number;
 }
