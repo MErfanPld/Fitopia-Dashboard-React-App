@@ -25,7 +25,7 @@ export const OfferingsPage: React.FC = () => {
     if (!gymId) return;
     setLoading(true); setError(null);
     try { setItems(await offeringsService.list(gymId)); }
-    catch (e: unknown) { setError(e instanceof Error ? e.message : 'دریافت اطلاعات با خطا مواجه شد.'); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : 'خطا در دریافت اطلاعات'); }
     finally { setLoading(false); }
   }, [gymId]);
 
@@ -43,10 +43,10 @@ export const OfferingsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Header title="خدمات" subtitle="خدمات و رشته‌های باشگاه" onQuickAction={() => { setDesc(''); setMonthly(''); setOpen(true); }} quickActionLabel="خدمت جدید" />
+      <Header title="خدمات" onQuickAction={() => { setDesc(''); setMonthly(''); setOpen(true); }} quickActionLabel="خدمت جدید" />
       {loading && <LoadingBlock />}
       {error && <ErrorBlock message={error} onRetry={load} />}
-      {!loading && !error && items.length === 0 && <EmptyState title="خدمتی ثبت نشده" />}
+      {!loading && !error && items.length === 0 && <EmptyState title="هنوز خدمتی ثبت نشده است" />}
       {!loading && !error && items.length > 0 && <DataTable columns={columns} data={items} />}
       <Modal isOpen={open} onClose={() => setOpen(false)} title="خدمت جدید">
         <div className="space-y-4">
@@ -54,7 +54,7 @@ export const OfferingsPage: React.FC = () => {
           <FormField label="قیمت ماهانه" type="number" value={monthly} onChange={(e) => setMonthly(e.target.value)} />
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setOpen(false)} className="px-4 py-2 text-sm text-muted">انصراف</button>
-            <button type="button" disabled={saving} className="px-4 py-2 text-sm bg-primary text-[#0B0B0F] font-bold rounded-lg" onClick={async () => {
+            <button type="button" disabled={saving} className="px-4 py-2 text-sm bg-primary text-primary-fg font-bold rounded-lg" onClick={async () => {
               if (!gymId) return;
               setSaving(true);
               try {
