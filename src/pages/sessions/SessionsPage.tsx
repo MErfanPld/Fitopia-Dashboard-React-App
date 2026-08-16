@@ -9,6 +9,7 @@ import { useUI } from '../../context/UIContext';
 import sessionsService from '../../services/sessions/sessionsService';
 import membersService from '../../services/members/membersService';
 import type { GymMember, SingleSession } from '../../types/api';
+import { formatJalaliDateTime } from '../../utils/jalaliUtils';
 
 export const SessionsPage: React.FC = () => {
   const { gymId, hasGym, can } = useGymScoped('finance.create');
@@ -36,14 +37,14 @@ export const SessionsPage: React.FC = () => {
     { key: 'customer', header: 'مشتری', render: (r) => <span className="text-ink">{r.customer}</span> },
     { key: 'price', header: 'قیمت', render: (r) => <span>{r.price.toLocaleString('fa-IR')}</span> },
     { key: 'status', header: 'وضعیت', render: (r) => <span className="text-muted text-xs">{r.status || '—'}</span> },
-    { key: 'purchased_at', header: 'خرید', render: (r) => <span className="text-xs text-muted">{r.purchased_at ? new Date(r.purchased_at).toLocaleString('fa-IR') : '—'}</span> },
+    { key: 'purchased_at', header: 'خرید', render: (r) => <span className="text-xs text-muted">{formatJalaliDateTime(r.purchased_at)}</span> },
   ];
 
   if (!hasGym) return <div className="space-y-6"><Header title="جلسات تکی" /><NoGymSelected /></div>;
 
   return (
     <div className="space-y-6">
-      <Header title="جلسات تکی" subtitle="خرید و مدیریت جلسات" onQuickAction={can('finance.create') ? async () => {
+      <Header title="جلسات تکی" onQuickAction={can('finance.create') ? async () => {
         if (gymId) { try { setMembers(await membersService.list(gymId)); } catch { setMembers([]); } }
         setCustomerId(''); setPrice(''); setOpen(true);
       } : undefined} quickActionLabel={can('finance.create') ? 'ثبت جلسه' : undefined} />
@@ -60,7 +61,7 @@ export const SessionsPage: React.FC = () => {
           <FormField label="قیمت" type="number" required value={price} onChange={(e) => setPrice(e.target.value)} />
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setOpen(false)} className="px-4 py-2 text-sm text-muted">انصراف</button>
-            <button type="button" disabled={saving} className="px-4 py-2 text-sm bg-primary text-[#0B0B0F] font-bold rounded-lg" onClick={async () => {
+            <button type="button" disabled={saving} className="px-4 py-2 text-sm bg-primary text-primary-fg font-bold rounded-lg" onClick={async () => {
               if (!gymId || !customerId || !price) return;
               setSaving(true);
               try {
