@@ -5,6 +5,7 @@ import { EmptyState, ErrorBlock, LoadingBlock, NoGymSelected } from '../../compo
 import { useGymScoped } from '../../hooks/useGymScoped';
 import auditService from '../../services/audit/auditService';
 import type { AuditLog } from '../../types/api';
+import { formatJalaliDateTime } from '../../utils/jalaliUtils';
 
 export const AuditLogsPage: React.FC = () => {
   const { gymId, hasGym } = useGymScoped();
@@ -23,17 +24,17 @@ export const AuditLogsPage: React.FC = () => {
   useEffect(() => { if (hasGym) load(); }, [hasGym, load]);
 
   const columns: Column<AuditLog>[] = [
-    { key: 'action', header: 'عمل', render: (r) => <span className="text-white text-sm">{r.action}</span> },
-    { key: 'object_type', header: 'نوع', render: (r) => <span className="text-slate-300 text-sm">{r.object_type || '—'}</span> },
-    { key: 'object_id', header: 'شناسه', render: (r) => <span className="text-slate-400 text-xs">{r.object_id || '—'}</span> },
-    { key: 'created_at', header: 'زمان', render: (r) => <span className="text-slate-400 text-xs">{r.created_at ? new Date(r.created_at).toLocaleString('fa-IR') : '—'}</span> },
+    { key: 'action', header: 'عمل', render: (r) => <span className="text-ink text-sm">{r.action}</span> },
+    { key: 'object_type', header: 'نوع', render: (r) => <span className="text-secondary text-sm">{r.object_type || '—'}</span> },
+    { key: 'object_id', header: 'شناسه', render: (r) => <span className="text-muted text-xs">{r.object_id || '—'}</span> },
+    { key: 'created_at', header: 'زمان', render: (r) => <span className="text-muted text-xs">{formatJalaliDateTime(r.created_at)}</span> },
   ];
 
   if (!hasGym) return <div className="space-y-6"><Header title="گزارش فعالیت" /><NoGymSelected /></div>;
 
   return (
     <div className="space-y-6">
-      <Header title="گزارش فعالیت" subtitle="سجل خواندنی اعمال باشگاه" onQuickAction={load} quickActionLabel="بروزرسانی" />
+      <Header title="گزارش فعالیت" onQuickAction={load} quickActionLabel="بروزرسانی" />
       {loading && <LoadingBlock />}
       {error && <ErrorBlock message={error} onRetry={load} />}
       {!loading && !error && items.length === 0 && <EmptyState title="رکوردی یافت نشد" />}
