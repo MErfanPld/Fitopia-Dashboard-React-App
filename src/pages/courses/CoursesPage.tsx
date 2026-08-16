@@ -26,7 +26,7 @@ export const CoursesPage: React.FC = () => {
     if (!gymId) return;
     setLoading(true); setError(null);
     try { setItems(await coursesService.list(gymId)); }
-    catch (e: unknown) { setError(e instanceof Error ? e.message : 'دریافت اطلاعات با خطا مواجه شد.'); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : 'خطا در دریافت اطلاعات'); }
     finally { setLoading(false); }
   }, [gymId]);
 
@@ -45,10 +45,10 @@ export const CoursesPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Header title="دوره‌ها" subtitle="دوره‌های آموزشی" onQuickAction={can('course.create') ? () => { setTitle(''); setPrice(''); setCapacity(''); setOpen(true); } : undefined} quickActionLabel={can('course.create') ? 'دوره جدید' : undefined} />
+      <Header title="دوره‌ها" onQuickAction={can('course.create') ? () => { setTitle(''); setPrice(''); setCapacity(''); setOpen(true); } : undefined} quickActionLabel={can('course.create') ? 'دوره جدید' : undefined} />
       {loading && <LoadingBlock />}
       {error && <ErrorBlock message={error} onRetry={load} />}
-      {!loading && !error && items.length === 0 && <EmptyState title="دوره‌ای ثبت نشده" />}
+      {!loading && !error && items.length === 0 && <EmptyState title="هنوز دوره‌ای ثبت نشده است" />}
       {!loading && !error && items.length > 0 && <DataTable columns={columns} data={items} searchKeys={['title']} />}
       <Modal isOpen={open} onClose={() => setOpen(false)} title="دوره جدید">
         <div className="space-y-4">
@@ -57,7 +57,7 @@ export const CoursesPage: React.FC = () => {
           <FormField label="ظرفیت" type="number" value={capacity} onChange={(e) => setCapacity(e.target.value)} />
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setOpen(false)} className="px-4 py-2 text-sm text-muted">انصراف</button>
-            <button type="button" disabled={saving} className="px-4 py-2 text-sm bg-primary text-[#0B0B0F] font-bold rounded-lg" onClick={async () => {
+            <button type="button" disabled={saving} className="px-4 py-2 text-sm bg-primary text-primary-fg font-bold rounded-lg" onClick={async () => {
               if (!gymId || !title.trim()) return;
               setSaving(true);
               try {
