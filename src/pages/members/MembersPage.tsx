@@ -5,6 +5,7 @@ import { DataTable, Column } from '../../components/common/DataTable';
 import { Modal } from '../../components/common/Modal';
 import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
 import { FormField } from '../../components/common/FormField';
+import { JalaliDatePicker } from '../../components/common/JalaliDatePicker';
 import { EmptyState, ErrorBlock, LoadingBlock, NoGymSelected } from '../../components/common/EmptyState';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { useGymScoped } from '../../hooks/useGymScoped';
@@ -47,63 +48,89 @@ export const MembersPage: React.FC = () => {
     setForm({
       full_name: m.full_name, phone: m.phone, sport: m.sport,
       sessions_total: m.sessions_total, sessions_remaining: m.sessions_remaining,
-      price_paid: m.price_paid, join_date: m.join_date || emptyForm.join_date,
-      membership_status: m.membership_status || 'active', membership_type: m.membership_type || 'session_pack', notes: m.notes,
+      price_paid: m.price_paid, join_date: m.join_date || '',
+      membership_status: m.membership_status || 'active',
+      membership_type: m.membership_type || 'session_pack', notes: m.notes,
     });
     setModalOpen(true);
   };
 
   const handleSave = async () => {
     if (!gymId) return;
-    if (!form.full_name.trim() || !form.phone.trim()) { showToast('نام و شماره تماس الزامی است.', 'warning'); return; }
+    if (!form.full_name.trim() || !form.phone.trim()) {
+      showToast('نام و تلفن الزامی است.', 'warning');
+      return;
+    }
     setSaving(true);
     try {
-      if (editing) { await membersService.update(gymId, editing.id, form); showToast('عضو به‌روزرسانی شد.', 'success'); }
-      else { await membersService.create(gymId, form); showToast('عضو جدید ثبت شد.', 'success'); }
-      setModalOpen(false); load();
-    } catch (e: unknown) { showToast(e instanceof Error ? e.message : 'خطا در ذخیره', 'danger'); }
-    finally { setSaving(false); }
+      if (editing) {
+        await membersService.update(gymId, editing.id, form);
+        showToast('عضو به‌روزرسانی شد.', 'success');
+      } else {
+        await membersService.create(gymId, form);
+        showToast('عضو ثبت شد.', 'success');
+      }
+      setModalOpen(false);
+      load();
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'خطا در ذخیره', 'danger');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async () => {
     if (!gymId || !deleting) return;
-    try { await membersService.remove(gymId, deleting.id); showToast('عضو حذف شد.', 'success'); setDeleting(null); load(); }
-    catch (e: unknown) { showToast(e instanceof Error ? e.message : 'خطا در حذف', 'danger'); }
+    try {
+      await membersService.remove(gymId, deleting.id);
+      showToast('حذف شد.', 'success');
+      setDeleting(null);
+      load();
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'خطا در حذف', 'danger');
+    }
   };
 
-  const columns: Column<GymMember>[] = useMemo(() => [
-    { key: 'full_name', header: 'نام', render: (r) => <span className="font-medium text-ink">{r.full_name}</span> },
-    { key: 'phone', header: 'تلفن', render: (r) => <span className="flex items-center gap-1 text-muted text-sm"><Phone className="w-3.5 h-3.5" />{r.phone}</span> },
-    { key: 'membership_status', header: 'وضعیت', render: (r) => <StatusBadge status={r.membership_status || (r.is_active ? 'active' : 'inactive')} /> },
-    { key: 'sessions_remaining', header: 'جلسات باقی', render: (r) => <span className="text-sm text-muted">{r.sessions_remaining_calc ?? r.sessions_remaining ?? '—'}</span> },
-  ], []);
+  const columns: Column<GymMember>[] = [
+    { key: 'full_name', header: 'نام', render: (r) => <span className="text-ink font-medium">{r.full_name}</span> },
+    { key: 'phone', header: 'تلفن', render: (r) => <span className="text-muted text-sm dir-ltr">{r.phone}</span> },
+    { key: 'sport_name', header: 'رشته', render: (r) => <span className="text-muted">{r.sport_name || '—'}</span> },
+    { key: 'membership_status', header: 'وضعیت', render: (r) => <StatusBadge status={r.membership_status || 'active'} /> },
+  ];
 
-  if (!hasGym) return <div className="space-y-6"><Header title="اعضا" /><NoGymSelected /></div>;
-  if (!can('customer.view')) return <div className="space-y-6"><Header title="اعضا" /><EmptyState title="دسترسی ندارید" description="مجوز مشاهده مشتریان برای نقش شما فعال نیست." /></div>;
+  if (!hasGym) return <div className="space-y-6"><Header title="مدیریت اعضا" /><NoGymSelected /></div>;
+  if (!can('customer.view')) return <div className="space-y-6"><Header title="مدیریت اعضا" /><EmptyState title="دسترسی ندارید" /></div>;
 
   return (
     <div className="space-y-6">
-      <Header title="مدیریت اعضا" subtitle="مشتریان باشگاه" onQuickAction={can('customer.create') ? openCreate : undefined} quickActionLabel={can('customer.create') ? 'عضو جدید' : undefined} />
+      <Header title="مدیریت اعضا" onQuickAction={can('customer.create') ? openCreate : undefined} quickActionLabel={can('customer.create') ? 'عضو جدید' : undefined} />
       <div className="flex justify-end">
-        <button type="button" onClick={load} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-muted text-sm"><RefreshCw className="w-4 h-4" />به‌روزرسانی</button>
+        <button type="button" onClick={load} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-muted text-sm hover:text-ink hover:bg-surface-hover">
+          <RefreshCw className="w-4 h-4" /> به‌روزرسانی
+        </button>
       </div>
       {loading && <LoadingBlock />}
       {error && <ErrorBlock message={error} onRetry={load} />}
-      {!loading && !error && items.length === 0 && <EmptyState title="عضوی یافت نشد" />}
+      {!loading && !error && items.length === 0 && <EmptyState title="هنوز عضوی ثبت نشده است" />}
       {!loading && !error && items.length > 0 && (
-        <DataTable columns={columns} data={items} searchKeys={['full_name', 'phone']} actions={(r) => (
-          <div className="flex items-center gap-1">
-            <button type="button" onClick={() => setDetail(r)} className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-surface-elevated"><Eye className="w-4 h-4" /></button>
-            {can('customer.update') && <button type="button" onClick={() => openEdit(r)} className="p-1.5 rounded-lg text-muted hover:text-primary-hover hover:bg-surface-elevated"><Edit3 className="w-4 h-4" /></button>}
-            {can('customer.delete') && <button type="button" onClick={() => setDeleting(r)} className="p-1.5 rounded-lg text-muted hover:text-danger-text hover:bg-surface-elevated"><Trash2 className="w-4 h-4" /></button>}
-          </div>
-        )} />
+        <DataTable
+          columns={columns}
+          data={items}
+          searchKeys={['full_name', 'phone']}
+          actions={(r) => (
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={() => setDetail(r)} className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-surface-elevated"><Eye className="w-4 h-4" /></button>
+              {can('customer.update') && <button type="button" onClick={() => openEdit(r)} className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-surface-elevated"><Edit3 className="w-4 h-4" /></button>}
+              {can('customer.delete') && <button type="button" onClick={() => setDeleting(r)} className="p-1.5 rounded-lg text-muted hover:text-danger-text hover:bg-surface-elevated"><Trash2 className="w-4 h-4" /></button>}
+            </div>
+          )}
+        />
       )}
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'ویرایش عضو' : 'ثبت عضو جدید'}>
         <div className="space-y-4">
           <FormField label="نام و نام خانوادگی" required value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
           <FormField label="شماره تماس" required value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-          <FormField label="تاریخ عضویت" type="date" value={form.join_date || ''} onChange={(e) => setForm({ ...form, join_date: e.target.value })} />
+          <JalaliDatePicker label="تاریخ عضویت" value={form.join_date || ''} onChange={(v) => setForm({ ...form, join_date: v })} />
           <div className="grid grid-cols-2 gap-3">
             <FormField label="تعداد جلسات" type="number" value={form.sessions_total ?? ''} onChange={(e) => setForm({ ...form, sessions_total: e.target.value ? Number(e.target.value) : null })} />
             <FormField label="مبلغ پرداختی" type="number" value={form.price_paid ?? ''} onChange={(e) => setForm({ ...form, price_paid: e.target.value ? Number(e.target.value) : null })} />
