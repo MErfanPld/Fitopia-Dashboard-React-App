@@ -85,10 +85,57 @@ export interface StaffEmployeeInput {
   start_date?: string | null; end_date?: string | null; employee_number?: string;
 }
 
+/** OpenAPI: DayOfWeekEnum — 0=شنبه … 6=جمعه */
+export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+/** OpenAPI: SkillLevelEnum */
+export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'all';
+/** OpenAPI: GenderRestrictionEnum */
+export type GenderRestriction = 'all' | 'male' | 'female';
+
+export interface OfferingSchedule {
+  id?: number;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+}
+
 export interface GymOffering {
-  id: number; gym?: number; sport?: number | null; sport_name?: string; description?: string; coaches?: number[];
-  capacity?: number | null; single_session_price?: number | null; course_price?: number | null; monthly_price?: number | null;
-  duration_minutes?: number | null; skill_level?: string; gender_restriction?: string; is_active?: boolean;
+  id: number;
+  gym?: number;
+  sport: number | null;
+  sport_name?: string;
+  description?: string;
+  coaches?: number[];
+  capacity?: number | null;
+  single_session_price?: number | null;
+  course_price?: number | null;
+  monthly_price?: number | null;
+  duration_minutes?: number | null;
+  skill_level?: SkillLevel | string;
+  gender_restriction?: GenderRestriction | string;
+  min_age?: number | null;
+  max_age?: number | null;
+  is_active?: boolean;
+  schedules?: OfferingSchedule[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface GymOfferingInput {
+  sport: number | null;
+  description?: string;
+  coaches?: number[];
+  capacity?: number | null;
+  single_session_price?: number | null;
+  course_price?: number | null;
+  monthly_price?: number | null;
+  duration_minutes?: number | null;
+  skill_level?: SkillLevel | string;
+  gender_restriction?: GenderRestriction | string;
+  min_age?: number | null;
+  max_age?: number | null;
+  is_active?: boolean;
+  schedules?: OfferingSchedule[];
 }
 export interface Course {
   id: number; title: string; sport?: number | null; sport_name?: string; offering?: number | null; coach?: number | null;
