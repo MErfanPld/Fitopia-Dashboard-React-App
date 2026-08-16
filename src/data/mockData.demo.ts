@@ -1,2 +1,2 @@
-/** Isolated demo data — not used in production routes. */
+/** Not used in production routes. */
 export {};

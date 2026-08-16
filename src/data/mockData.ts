@@ -1,2 +1,2 @@
-/** Production uses live API only. This file is intentionally empty. */
+/** Production uses live API only. */
 export {};

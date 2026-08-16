@@ -12,6 +12,7 @@ import { MembersPage } from './pages/members/MembersPage';
 import { CoachesPage } from './pages/coaches/CoachesPage';
 import { EmployeesPage } from './pages/employees/EmployeesPage';
 import { OfferingsPage } from './pages/offerings/OfferingsPage';
+import { PricesPage } from './pages/prices/PricesPage';
 import { CoursesPage } from './pages/courses/CoursesPage';
 import { AttendancePage } from './pages/attendance/AttendancePage';
 import { FinancePage } from './pages/finance/FinancePage';
@@ -37,6 +38,7 @@ export default function App() {
                 <Route path="/coaches" element={<CoachesPage />} />
                 <Route path="/employees" element={<EmployeesPage />} />
                 <Route path="/offerings" element={<OfferingsPage />} />
+                <Route path="/prices" element={<PricesPage />} />
                 <Route path="/courses" element={<CoursesPage />} />
                 <Route path="/attendance" element={<AttendancePage />} />
                 <Route path="/sessions" element={<SessionsPage />} />
