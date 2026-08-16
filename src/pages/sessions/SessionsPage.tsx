@@ -26,7 +26,14 @@ export const SessionsPage: React.FC = () => {
   const load = useCallback(async () => {
     if (!gymId) return;
     setLoading(true); setError(null);
-    try { setItems(await sessionsService.list(gymId)); }
+    try {
+      const [list, mem] = await Promise.all([
+        sessionsService.list(gymId),
+        membersService.list(gymId).catch(() => [] as GymMember[]),
+      ]);
+      setItems(list);
+      setMembers(mem);
+    }
     catch (e: unknown) { setError(e instanceof Error ? e.message : 'دریافت اطلاعات با خطا مواجه شد.'); }
     finally { setLoading(false); }
   }, [gymId]);
@@ -34,7 +41,7 @@ export const SessionsPage: React.FC = () => {
   useEffect(() => { if (hasGym) load(); }, [hasGym, load]);
 
   const columns: Column<SingleSession>[] = [
-    { key: 'customer', header: 'مشتری', render: (r) => <span className="text-ink">{r.customer}</span> },
+    { key: 'customer', header: 'مشتری', render: (r) => <span className="text-ink">{members.find(m => m.id === r.customer)?.full_name || `عضو #${r.customer}`}</span> },
     { key: 'price', header: 'قیمت', render: (r) => <span>{r.price.toLocaleString('fa-IR')}</span> },
     { key: 'status', header: 'وضعیت', render: (r) => <span className="text-muted text-xs">{r.status || '—'}</span> },
     { key: 'purchased_at', header: 'خرید', render: (r) => <span className="text-xs text-muted">{formatJalaliDateTime(r.purchased_at)}</span> },
@@ -61,7 +68,7 @@ export const SessionsPage: React.FC = () => {
           <FormField label="قیمت" type="number" required value={price} onChange={(e) => setPrice(e.target.value)} />
           <div className="flex justify-end gap-2">
             <button type="button" onClick={() => setOpen(false)} className="px-4 py-2 text-sm text-muted">انصراف</button>
-            <button type="button" disabled={saving} className="px-4 py-2 text-sm bg-primary text-primary-fg font-bold rounded-lg" onClick={async () => {
+            <button type="button" disabled={saving} className="px-4 py-2 text-sm bg-primary text-primary-fg font-bold rounded-lg disabled:opacity-50" onClick={async () => {
               if (!gymId || !customerId || !price) return;
               setSaving(true);
               try {
