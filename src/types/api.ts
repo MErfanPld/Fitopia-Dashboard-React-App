@@ -33,23 +33,43 @@ export interface GymAccess { id: number; gym: number; gym_name: string; gym_addr
 export interface AuthUser { id?: number; username?: string; full_name?: string; phone?: string; phone_number?: string; }
 export interface LoginResponse {
   tokens?: { access: string; refresh?: string };
-  access?: string;
-  refresh?: string;
-  user?: AuthUser;
-  gyms?: GymAccess[];
+  access?: string; refresh?: string; user?: AuthUser; gyms?: GymAccess[];
 }
 
 export interface GymMember {
-  id: number; full_name: string; phone: string; sport?: number | null; sport_name?: string; coach?: number | null;
-  sessions_total?: number | null; sessions_remaining?: number | null; sessions_remaining_calc?: number | null;
-  price_paid?: number | null; join_date?: string; membership_status?: string; membership_type?: string;
-  notes?: string; is_active?: boolean; source?: string; added_by?: number | null; added_by_name?: string;
-  last_visit_at?: string | null; created_at?: string; updated_at?: string;
+  id: number;
+  full_name: string;
+  phone: string;
+  sport: number | null;
+  sport_name: string;
+  source: string;
+  added_by: number | null;
+  added_by_name: string | null;
+  sessions_total: number | null;
+  sessions_remaining: number | null;
+  price_paid: number | null;
+  join_date: string;
+  is_fitopia_user: boolean | string;
+  created_at: string;
+  updated_at: string;
+  coach?: number | null;
+  membership_status?: string;
+  membership_type?: string;
+  notes?: string;
+  is_active?: boolean;
+  last_visit_at?: string | null;
+  sessions_remaining_calc?: number | null;
 }
+export type GymCustomer = GymMember;
+
 export interface GymMemberInput {
-  full_name: string; phone: string; sport?: number | null; coach?: number | null;
-  sessions_total?: number | null; sessions_remaining?: number | null; price_paid?: number | null;
-  join_date?: string; membership_status?: string; membership_type?: string; notes?: string; is_active?: boolean;
+  full_name: string;
+  phone: string;
+  sport: number | null;
+  sessions_total: number | null;
+  sessions_remaining: number | null;
+  price_paid: number | null;
+  join_date: string;
 }
 
 export interface GymCoach { id: number; full_name: string; image?: string | null; specialty?: string; sports?: number[]; }
