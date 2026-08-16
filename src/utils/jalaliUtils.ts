@@ -90,3 +90,18 @@ export function getJalaliFirstDayOfWeek(jy: number, jm: number): number {
   const d = new Date(g.gy, g.gm - 1, g.gd);
   return (d.getDay() + 1) % 7;
 }
+
+export function formatJalaliDateTime(iso?: string | null): string {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    const g = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const datePart = formatJalaliNumeric(g);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${datePart} ${toPersianDigits(`${hh}:${mm}`)}`;
+  } catch {
+    return '—';
+  }
+}
