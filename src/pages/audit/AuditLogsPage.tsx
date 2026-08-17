@@ -24,9 +24,10 @@ export const AuditLogsPage: React.FC = () => {
   useEffect(() => { if (hasGym) load(); }, [hasGym, load]);
 
   const columns: Column<AuditLog>[] = [
-    { key: 'action', header: 'عمل', render: (r) => <span className="text-ink text-sm">{r.action}</span> },
+    { key: 'action', header: 'عملیات', render: (r) => <span className="text-ink text-sm">{r.action}</span> },
+    { key: 'user_name', header: 'کاربر', render: (r) => <span className="text-secondary text-sm">{r.user_name || 'سیستم'}</span> },
     { key: 'object_type', header: 'نوع', render: (r) => <span className="text-secondary text-sm">{r.object_type || '—'}</span> },
-    { key: 'object_id', header: 'شناسه', render: (r) => <span className="text-muted text-xs">{r.object_id || '—'}</span> },
+    { key: 'object_id', header: 'مورد', render: (r) => <span className="text-muted text-xs">{r.object_repr || r.object_type || '—'}</span> },
     { key: 'created_at', header: 'زمان', render: (r) => <span className="text-muted text-xs">{formatJalaliDateTime(r.created_at)}</span> },
   ];
 
