@@ -11,9 +11,9 @@ export const AdminLayout: React.FC = () => (
       <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
         <Outlet />
       </main>
-      <footer className="px-4 sm:px-8 py-4 border-t border-border text-xs text-muted flex flex-col sm:flex-row items-center justify-between gap-3 bg-header">
+      <footer className="px-4 sm:px-8 py-3.5 border-t border-border text-xs text-muted flex flex-col sm:flex-row items-center justify-between gap-2 bg-header/80">
         <span>فیتوپیا — پنل مدیریت باشگاه</span>
-        <div className="flex gap-3 text-[11px]">
+        <div className="flex gap-4 text-[11px]">
           <Link to="/guide" className="hover:text-primary transition-colors">راهنما</Link>
           <Link to="/privacy" className="hover:text-primary transition-colors">حریم خصوصی</Link>
         </div>
