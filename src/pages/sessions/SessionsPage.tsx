@@ -41,7 +41,7 @@ export const SessionsPage: React.FC = () => {
   useEffect(() => { if (hasGym) load(); }, [hasGym, load]);
 
   const columns: Column<SingleSession>[] = [
-    { key: 'customer', header: 'مشتری', render: (r) => <span className="text-ink">{members.find(m => m.id === r.customer)?.full_name || `عضو #${r.customer}`}</span> },
+    { key: 'customer', header: 'عضو', render: (r) => <span className="text-ink">{members.find(m => m.id === r.customer)?.full_name || 'نامشخص'}</span> },
     { key: 'price', header: 'قیمت', render: (r) => <span>{r.price.toLocaleString('fa-IR')}</span> },
     { key: 'status', header: 'وضعیت', render: (r) => <span className="text-muted text-xs">{r.status || '—'}</span> },
     { key: 'purchased_at', header: 'خرید', render: (r) => <span className="text-xs text-muted">{formatJalaliDateTime(r.purchased_at)}</span> },
