@@ -57,7 +57,7 @@ export const FinancePage: React.FC = () => {
     { key: 'status', header: 'وضعیت', render: (r) => <span className="text-xs text-muted">{r.status}</span> },
   ];
   const payCols: Column<CustomerPayment>[] = [
-    { key: 'customer', header: 'مشتری', render: (r) => <span className="text-ink">{r.customer}</span> },
+    { key: 'customer', header: 'عضو', render: (r) => <span className="text-ink">{r.customer}</span> },
     { key: 'total_price', header: 'مبلغ کل', render: (r) => <span>{money(r.total_price)}</span> },
     { key: 'amount_paid', header: 'پرداخت‌شده', render: (r) => <span className="text-success-text">{money(r.amount_paid)}</span> },
     { key: 'remaining_balance', header: 'مانده', render: (r) => <span className="text-warning-text">{money(r.remaining_balance || 0)}</span> },
@@ -100,7 +100,7 @@ export const FinancePage: React.FC = () => {
       {!loading && !error && section === 'report' && !report && !can('finance.report') && <EmptyState title="دسترسی به گزارش مالی ندارید" />}
       <Modal isOpen={refundOpen} onClose={() => setRefundOpen(false)} title="ثبت استرداد">
         <div className="space-y-4">
-          <FormField label="شناسه تراکنش" type="number" required value={refundTx} onChange={(e) => setRefundTx(e.target.value)} />
+          <FormField label="شماره تراکنش" type="number" required value={refundTx} onChange={(e) => setRefundTx(e.target.value)} />
           <FormField label="مبلغ" type="number" required value={refundAmount} onChange={(e) => setRefundAmount(e.target.value)} />
           <FormField label="دلیل" value={refundReason} onChange={(e) => setRefundReason(e.target.value)} />
           <div className="flex justify-end gap-2">
