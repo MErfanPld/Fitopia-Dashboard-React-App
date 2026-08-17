@@ -74,14 +74,14 @@
   --fitopia-danger-soft: rgba(220, 38, 38, 0.12);
   --fitopia-danger-text: #B91C1C;
   --fitopia-info: #2563EB;
-  --fitopia-info-soft: rgba(37, 99, 235, 0.12);
+  --fitopia-info-soft: rgba(37, 99, 246, 0.12);
   --fitopia-info-text: #1D4ED8;
   --fitopia-skeleton: #E4E4E7;
   --fitopia-overlay: rgba(24, 24, 27, 0.40);
-  --fitopia-scrollbar: #D4D4D8;
-  --fitopia-scrollbar-hover: #A1A1AA;
+  --fitopia-scrollbar: rgba(0, 0, 0, 0.18);
+  --fitopia-scrollbar-hover: rgba(0, 0, 0, 0.28);
   --fitopia-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-  --fitopia-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --fitopia-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 @theme {
@@ -144,7 +144,13 @@
     border-radius: 999px;
   }
   ::-webkit-scrollbar-thumb:hover { background: var(--fitopia-scrollbar-hover); }
-  input, select, textarea { color-scheme: dark; }
+  input, select, textarea { color-scheme: inherit; }
+  [data-theme="dark"] input,
+  [data-theme="dark"] select,
+  [data-theme="dark"] textarea { color-scheme: dark; }
+  [data-theme="light"] input,
+  [data-theme="light"] select,
+  [data-theme="light"] textarea { color-scheme: light; }
 }
 
 @keyframes fitopia-modal-in {
