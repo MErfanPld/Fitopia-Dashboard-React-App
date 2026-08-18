@@ -1,20 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  BookOpen,
-  ArrowRight,
-  LogIn,
-  Building2,
-  Users,
-  UserCheck,
-  DollarSign,
-  Ticket,
-  ChevronDown,
-  ChevronUp,
-  HelpCircle,
-  ShieldCheck,
-  CheckCircle2,
-  Sparkles,
+  BookOpen, LogIn, Building2, Users, UserCheck, DollarSign, Ticket,
+  ChevronDown, ChevronUp, CheckCircle2, Sparkles, ClipboardList, UserCog,
 } from 'lucide-react';
 import { Header } from '../components/common/Header';
 
@@ -27,11 +15,110 @@ interface GuideSection {
   steps: string[];
 }
 
+const guideSections: GuideSection[] = [
+  {
+    id: 'login',
+    title: 'ورود و مدیریت نشست',
+    icon: LogIn,
+    badge: 'گام اول',
+    summary: 'نحوه ورود به پنل، احراز هویت و خروج هنگام پایان نشست.',
+    steps: [
+      'شماره موبایل و رمز عبور باشگاه را در صفحه ورود وارد کنید.',
+      'پس از ورود موفق به داشبورد هدایت می‌شوید.',
+      'اگر نشست منقضی شود، دوباره از صفحه ورود وارد شوید.',
+    ],
+  },
+  {
+    id: 'gym',
+    title: 'اطلاعات باشگاه',
+    icon: Building2,
+    badge: 'تنظیمات',
+    summary: 'ویرایش اطلاعات قابل‌تغییر و درخواست تغییر نام/آدرس از طریق تیکت.',
+    steps: [
+      'از منو وارد «تنظیمات» شوید.',
+      'توضیحات، تماس، شبکه‌های اجتماعی و ساعات کاری را ویرایش و ذخیره کنید.',
+      'برای تغییر نام یا آدرس باشگاه از بخش «تیکت‌ها» درخواست ویرایش ثبت کنید.',
+    ],
+  },
+  {
+    id: 'members',
+    title: 'مدیریت اعضا',
+    icon: UserCheck,
+    badge: 'اعضا',
+    summary: 'ثبت‌نام اعضا، وضعیت عضویت و فیلتر بر اساس رشته.',
+    steps: [
+      'از منو وارد «اعضا» شوید.',
+      'با دکمه «عضو جدید» اطلاعات را وارد کنید.',
+      'می‌توانید بر اساس نام، شماره یا رشته جستجو و فیلتر کنید.',
+    ],
+  },
+  {
+    id: 'coaches',
+    title: 'مدیریت مربیان',
+    icon: Users,
+    badge: 'کادر فنی',
+    summary: 'تعریف مربیان، تخصص و رشته‌های ورزشی.',
+    steps: [
+      'از منو وارد «مربیان» شوید.',
+      'مربی جدید اضافه کنید و رشته‌ها را انتخاب کنید.',
+      'در صورت نیاز عکس و تخصص را ویرایش کنید.',
+    ],
+  },
+  {
+    id: 'employees',
+    title: 'کارکنان و دسترسی‌ها',
+    icon: UserCog,
+    badge: 'دسترسی',
+    summary: 'تعریف کارمند، نقش و مجوزهای عملیاتی.',
+    steps: [
+      'از منو وارد «کارکنان» شوید.',
+      'نقش (مدیر، پذیرش، حسابدار و …) را انتخاب کنید.',
+      'در صورت نیاز مجوزهای اختصاصی را تنظیم کنید.',
+    ],
+  },
+  {
+    id: 'offerings',
+    title: 'خدمات و رشته‌ها',
+    icon: ClipboardList,
+    badge: 'خدمات',
+    summary: 'تعریف خدمات، قیمت‌ها، مربیان و برنامه زمانی.',
+    steps: [
+      'از منو وارد «خدمات و رشته‌ها» شوید.',
+      'خدمت جدید با رشته، ظرفیت، قیمت و سانس‌ها بسازید.',
+      'برای رشته‌های جدید از «پیشنهاد رشته» استفاده کنید.',
+    ],
+  },
+  {
+    id: 'prices',
+    title: 'قیمت‌ها و تعرفه‌ها',
+    icon: DollarSign,
+    badge: 'مالی',
+    summary: 'تعرفه تک‌جلسه، ماهانه، سه‌ماهه و سالانه هر رشته.',
+    steps: [
+      'از منو وارد «قیمت‌ها» شوید.',
+      'برای هر رشته تعرفه تعریف یا ویرایش کنید.',
+      'مبالغ به تومان نمایش داده می‌شوند.',
+    ],
+  },
+  {
+    id: 'tickets',
+    title: 'تیکت‌ها و پشتیبانی',
+    icon: Ticket,
+    badge: 'پشتیبانی',
+    summary: 'درخواست ویرایش اطلاعات و پیشنهاد رشته به تیم فیتوپیا.',
+    steps: [
+      'از منو وارد «تیکت‌ها» شوید یا از زنگوله اعلان استفاده کنید.',
+      'وضعیت تیکت‌ها را به فارسی می‌بینید: در انتظار، تایید شده، رد شده.',
+      'روی تیکت‌های در انتظار می‌توانید پیام ارسال کنید.',
+    ],
+  },
+];
+
 export const GuidePage: React.FC = () => {
   const navigate = useNavigate();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    'login': true,
-    'gym': true,
+    login: true,
+    gym: true,
   });
 
   const toggleSection = (id: string) => {
@@ -39,178 +126,82 @@ export const GuidePage: React.FC = () => {
   };
 
   const expandAll = () => {
-    const allOpened: Record<string, boolean> = {};
-    guideSections.forEach((s) => (allOpened[s.id] = true));
-    setOpenSections(allOpened);
+    const all: Record<string, boolean> = {};
+    guideSections.forEach((s) => {
+      all[s.id] = true;
+    });
+    setOpenSections(all);
   };
 
-  const collapseAll = () => {
-    setOpenSections({});
-  };
-
-  const guideSections: GuideSection[] = [
-    {
-      id: 'login',
-      title: '۱. ورود و مدیریت نشست‌های کاری (Authentication)',
-      icon: LogIn,
-      badge: 'گام اول',
-      summary: 'نحوه ورود به پنل، احراز هویت امن و مدیریت خروج خودکار هنگام منقضی شدن توکن دسترسی.',
-      steps: [
-        'جهت ورود به پنل، شماره تلفن همراه ثبت‌شده و رمز عبور اختصاصی باشگاه خود را در فرم لاگین وارد نمایید.',
-        'در صورت صحت اطلاعات، توکن دسترسی امن دریافت شده و به داشبورد اصلی منتقل می‌شوید.',
-        'چنانچه برای مدت طولانی غیرفعال باشید یا توکن دسترسی شما منقضی شود (خطای 401)، سامانه شما را به صفحه خوش‌آمدگویی (Welcome) هدایت کرده و پس از اعلام پایان نشست، امکان ورود مجدد فراهم می‌گردد.',
-      ],
-    },
-    {
-      id: 'gym',
-      title: '۲. ویرایش و به‌روزرسانی اطلاعات باشگاه (Gym Info & Change Requests)',
-      icon: Building2,
-      badge: 'اطلاعات پایه',
-      summary: 'مشاهده مشخصات عمومی باشگاه، موقعیت مکانی و ثبت درخواست تغییر برای موارد نیازمند تایید.',
-      steps: [
-        'از منوی سمت راست وارد بخش «مشخصات باشگاه» شوید.',
-        'اطلاعات تماس، آدرس دقیق، ساعات کاری و رشته‌های فعال باشگاه را مشاهده و بررسی نمایید.',
-        'تغییرات حساس (مانند تغییر نام باشگاه، تغییر آدرس یا نقشه) نیازمند ثبت «درخواست تغییر» (Change Request) است که پس از ثبت، توسط تیم پشتیبانی فیتوپیا بررسی و تایید می‌گردد.',
-      ],
-    },
-    {
-      id: 'coaches',
-      title: '۳. مدیریت مربیان و کادر ورزشی (Coaches Management)',
-      icon: Users,
-      badge: 'کادر فنی',
-      summary: 'تعریف مربیان جدید، تخصیص رشته‌های ورزشی، درج سوابق و مدیریت لیست کادر ورزشی.',
-      steps: [
-        'به بخش «مربیان» در منوی اصلی مراجعه کنید.',
-        'برای افزودن مربی جدید، روی دکمه «افزودن مربی» کلیک کرده، نام، شماره همراه و رشته ورزشی تخصصی وی را انتخاب نمایید.',
-        'امکان ویرایش مشخصات یا حذف پرونده مربیان در هر زمان فراهم می‌باشد.',
-      ],
-    },
-    {
-      id: 'customers',
-      title: '۴. ثبت و مدیریت پرونده مشتریان و ورزشکاران (Customers Management)',
-      icon: UserCheck,
-      badge: 'ورزشکاران',
-      summary: 'ثبت‌نام اعضای جدید باشگاه، فیلتر بر اساس رشته ورزشی و مشاهده وضعیت حساب کاربری.',
-      steps: [
-        'در صفحه «مشتریان»، لیست تمامی ورزشکاران عضو باشگاه خود را مشاهده می‌کنید.',
-        'برای ثبت عضو جدید، دکمه «افزودن مشتری» را زده و نام، شماره تماس، رشته ورزشی و تاریخ عضویت را وارد کنید.',
-        'از نوار ابزار بالای جدول می‌توانید اعضا را بر اساس رشته ورزشی فیلتر کنید یا نام/شماره همراه را جستجو نمایید.',
-        'علامت سبز رنگ «کاربر فیتوپیا» نشان‌دهنده نصب و فعال بودن اپلیکیشن فیتوپیا توسط ورزشکار است.',
-      ],
-    },
-    {
-      id: 'prices',
-      title: '۵. مدیریت قیمت‌ها و تعرفه‌های سانس‌ها (Prices & Rates)',
-      icon: DollarSign,
-      badge: 'مالی و تعرفه',
-      summary: 'تعریف شهریه متغیر بر اساس رشته ورزشی، جنسیت (آقایان/بانوان) و نوع سانس.',
-      steps: [
-        'در بخش «مدیریت قیمت‌ها»، تعرفه‌های فعلی هر رشته ورزشی را مشاهده کنید.',
-        'برای افزودن نرخ جدید، دکمه «تعریف قیمت جدید» را انتخاب کرده، رشته ورزشی، جنسیت و مبلغ شهریه ماهانه یا تک‌جلسه را مشخص نمایید.',
-        'تغییرات قیمت پس از ثبت به صورت لحظه‌ای در اپلیکیشن فیتوپیا برای کاربران به روز می‌گردد.',
-      ],
-    },
-    {
-      id: 'tickets',
-      title: '۶. ثبت درخواست تغییر و تیکت‌های پشتیبانی (Tickets & Support)',
-      icon: Ticket,
-      badge: 'پشتیبانی',
-      summary: 'ارتباط مستقیم با کارشناسان فیتوپیا، پیگیری تیکت‌ها و دریافت پاسخ‌های سیستم.',
-      steps: [
-        'از بخش «پشتیبانی و تیکت‌ها» می‌توانید درخواست‌های تغییر اطلاعات باشگاه یا پیشنهادات خود را ارسال کنید.',
-        'وضعیت هر تیکت به صورت «در حال بررسی»، «تایید شده» یا «رد شده» نمایش داده می‌شود.',
-        'اعلان‌های مربوط به تغییر وضعیت تیکت‌ها در زنگوله بالای پنل به شما اطلاع‌رسانی خواهد شد.',
-      ],
-    },
-  ];
+  const collapseAll = () => setOpenSections({});
 
   return (
     <div className="space-y-6">
-      <Header title="راهنمای جامع استفاده از پنل فیتوپیا" subtitle="راهنمای گام‌به‌گام بهره‌برداری از امکانات سامانه مدیریت باشگاه" />
-
-      {/* Hero Banner */}
-      <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-r from-[#1A1A1A] via-[#141414] to-[#0D0D0D] border border-[#2A2A2A] relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
-        <div className="space-y-3 max-w-2xl text-right z-10">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#FF7A1A]/10 text-[#FF7A1A] border border-[#FF7A1A]/20">
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>مرکز راهنما و آموزش سامانه</span>
-          </div>
-          <h2 className="text-xl md:text-2xl font-black text-white">
-            چگونه بهترین استفاده را از پنل مدیریت «فیتوپیا» داشته باشیم؟
-          </h2>
-          <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
-            این راهنما شما را با تمامی قابلیت‌های مدیریت باشگاه، ثبت اعضا، تنظیم تعرفه‌ها و ارتباط با پشتیبانی آشنا می‌سازد.
-          </p>
-          <div className="pt-2 flex items-center gap-3">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="px-4 py-2 bg-[#FF7A1A] hover:bg-[#FF8C00] text-slate-950 font-black rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-[#FF7A1A]/20 transition-all cursor-pointer"
-            >
-              <ArrowRight className="w-4 h-4" />
-              <span>بازگشت به داشبورد</span>
+      <Header
+        title="راهنمای استفاده"
+        subtitle="آشنایی سریع با امکانات پنل مدیریت باشگاه"
+        actions={
+          <div className="flex gap-2">
+            <button type="button" onClick={expandAll} className="px-3 py-2 text-xs rounded-xl border border-border text-secondary hover:bg-surface-hover">
+              باز کردن همه
             </button>
-            <button
-              onClick={expandAll}
-              className="px-3.5 py-2 bg-[#222] hover:bg-[#2A2A2A] text-slate-300 rounded-xl text-xs font-bold border border-[#333] transition-colors cursor-pointer"
-            >
-              باز کردن همه بخش‌ها
-            </button>
-            <button
-              onClick={collapseAll}
-              className="px-3.5 py-2 bg-[#222] hover:bg-[#2A2A2A] text-slate-400 rounded-xl text-xs font-bold border border-[#333] transition-colors cursor-pointer"
-            >
+            <button type="button" onClick={collapseAll} className="px-3 py-2 text-xs rounded-xl border border-border text-muted hover:bg-surface-hover">
               بستن همه
             </button>
           </div>
-        </div>
+        }
+      />
 
-        <div className="w-24 h-24 md:w-32 md:h-32 rounded-3xl bg-[#FF7A1A]/10 border border-[#FF7A1A]/30 flex items-center justify-center text-[#FF7A1A] shrink-0">
-          <HelpCircle className="w-12 h-12 md:w-16 md:h-16" />
+      <div className="rounded-2xl border border-border bg-surface p-4 sm:p-5 flex items-start gap-3">
+        <div className="w-11 h-11 rounded-xl bg-primary-soft border border-border flex items-center justify-center shrink-0">
+          <BookOpen className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-sm font-bold text-ink">به پنل فیتوپیا خوش آمدید</h2>
+          <p className="text-xs text-muted mt-1 leading-relaxed">
+            این راهنما مراحل اصلی کار با داشبورد را به‌صورت خلاصه توضیح می‌دهد. هر بخش را باز کنید و مراحل را دنبال کنید.
+          </p>
         </div>
       </div>
 
-      {/* Accordion Sections List */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {guideSections.map((sec) => {
+          const Icon = sec.icon;
           const isOpen = !!openSections[sec.id];
-          const IconComponent = sec.icon;
-
           return (
-            <div
-              key={sec.id}
-              className="bg-[#141414] border border-[#262626] rounded-2xl overflow-hidden transition-all duration-200"
-            >
+            <div key={sec.id} className="rounded-2xl border border-border bg-surface overflow-hidden transition-colors">
               <button
+                type="button"
                 onClick={() => toggleSection(sec.id)}
-                className="w-full p-4 md:p-5 flex items-center justify-between text-right hover:bg-[#181818] transition-colors cursor-pointer"
+                className="w-full p-4 md:p-5 flex items-center justify-between text-right hover:bg-surface-hover transition-colors"
+                aria-expanded={isOpen}
               >
-                <div className="flex items-center gap-3 md:gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-[#222] border border-[#333] flex items-center justify-center text-[#FF7A1A] shrink-0">
-                    <IconComponent className="w-5 h-5" />
+                <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-surface-elevated border border-border flex items-center justify-center text-primary shrink-0">
+                    <Icon className="w-5 h-5" />
                   </div>
-                  <div>
+                  <div className="min-w-0 text-right">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-bold text-sm md:text-base text-white">{sec.title}</h3>
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FF7A1A]/10 text-[#FF7A1A] border border-[#FF7A1A]/20">
+                      <h3 className="font-bold text-sm md:text-base text-ink">{sec.title}</h3>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary-soft text-primary border border-primary/20">
                         {sec.badge}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1 line-clamp-1">{sec.summary}</p>
+                    <p className="text-xs text-muted mt-1 line-clamp-1">{sec.summary}</p>
                   </div>
                 </div>
-
-                <div className="p-1.5 rounded-lg bg-[#222] text-slate-400 shrink-0 mr-2">
+                <div className="p-1.5 rounded-lg bg-surface-elevated text-muted shrink-0 mr-2">
                   {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </div>
               </button>
 
               {isOpen && (
-                <div className="p-4 md:p-5 pt-0 border-t border-[#222] bg-[#111] space-y-3 animate-in fade-in">
-                  <p className="text-xs text-slate-300 font-medium leading-relaxed">{sec.summary}</p>
-                  <div className="space-y-2 pt-2">
+                <div className="px-4 md:px-5 pb-4 md:pb-5 border-t border-border bg-surface-elevated/50 space-y-3">
+                  <p className="text-xs text-secondary font-medium leading-relaxed pt-3">{sec.summary}</p>
+                  <div className="space-y-2">
                     {sec.steps.map((step, idx) => (
-                      <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-300 bg-[#171717] p-3 rounded-xl border border-[#242424]">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <div key={idx} className="flex items-start gap-2.5 text-xs text-ink bg-surface p-3 rounded-xl border border-border">
+                        <CheckCircle2 className="w-4 h-4 text-success-text shrink-0 mt-0.5" />
                         <span className="leading-relaxed">{step}</span>
                       </div>
                     ))}
@@ -222,23 +213,24 @@ export const GuidePage: React.FC = () => {
         })}
       </div>
 
-      {/* Bottom Action Footer */}
-      <div className="p-6 rounded-2xl bg-[#141414] border border-[#262626] flex items-center justify-between flex-wrap gap-4">
+      <div className="p-5 sm:p-6 rounded-2xl border border-border bg-surface flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
-          <Sparkles className="w-5 h-5 text-[#FF7A1A]" />
+          <Sparkles className="w-5 h-5 text-primary" />
           <div>
-            <h4 className="text-xs font-bold text-white">سؤالی دارید یا به راهنمایی بیشتری نیاز دارید؟</h4>
-            <p className="text-[11px] text-slate-400 mt-0.5">تیم پشتیبانی فیتوپیا همواره آماده پاسخگویی و راهنمایی شماست.</p>
+            <h4 className="text-xs font-bold text-ink">نیاز به راهنمایی بیشتر دارید؟</h4>
+            <p className="text-[11px] text-muted mt-0.5">از بخش تیکت‌ها با پشتیبانی فیتوپیا در ارتباط باشید.</p>
           </div>
         </div>
-
         <button
+          type="button"
           onClick={() => navigate('/tickets')}
-          className="px-4 py-2 bg-[#222] hover:bg-[#2A2A2A] text-[#FF7A1A] border border-[#FF7A1A]/30 font-bold rounded-xl text-xs transition-all cursor-pointer"
+          className="px-4 py-2 rounded-xl text-xs font-bold bg-primary-soft text-primary border border-primary/30 hover:bg-primary hover:text-primary-fg transition-colors"
         >
-          ارسال تیکت به پشتیبانی
+          رفتن به تیکت‌ها
         </button>
       </div>
     </div>
   );
 };
+
+export default GuidePage;
