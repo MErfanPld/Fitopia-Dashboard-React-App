@@ -10,6 +10,7 @@ import { EmptyState, ErrorBlock, LoadingBlock, NoGymSelected } from '../../compo
 import { useGymScoped } from '../../hooks/useGymScoped';
 import { useUI } from '../../context/UIContext';
 import employeesService from '../../services/employees/employeesService';
+import membersService from '../../services/members/membersService';
 import {
   ROLE_LABELS,
   ROLE_DEFAULTS,
@@ -74,6 +75,8 @@ export const EmployeesPage: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<StaffEmployee | null>(null);
   const [userId, setUserId] = useState('');
+  const [fitopiaCandidates, setFitopiaCandidates] = useState<{ id: number; label: string }[]>([]);
+  const [candidatesLoading, setCandidatesLoading] = useState(false);
   const [role, setRole] = useState<string>('staff');
   const [employeeNumber, setEmployeeNumber] = useState('');
   const [isActive, setIsActive] = useState(true);
@@ -124,6 +127,37 @@ export const EmployeesPage: React.FC = () => {
     return rows;
   }, [items, search, roleFilter, activeFilter]);
 
+  const loadFitopiaCandidates = useCallback(async () => {
+    if (!gymId) return;
+    setCandidatesLoading(true);
+    try {
+      const members = await membersService.list(gymId);
+      const map = new Map<number, string>();
+      for (const m of members || []) {
+        const uid = m.fitopia_user;
+        if (uid == null || Number(uid) <= 0) continue;
+        const id = Number(uid);
+        const label = [m.full_name, m.phone].filter(Boolean).join(' — ') || `کاربر ${id}`;
+        if (!map.has(id)) map.set(id, label);
+      }
+      for (const e of items) {
+        if (e?.user != null && e.user > 0) {
+          const label = [e.username, e.user_phone].filter(Boolean).join(' — ') || `کاربر ${e.user}`;
+          if (!map.has(e.user)) map.set(e.user, label);
+        }
+      }
+      setFitopiaCandidates(
+        Array.from(map.entries())
+          .map(([id, label]) => ({ id, label }))
+          .sort((a, b) => a.label.localeCompare(b.label, 'fa')),
+      );
+    } catch {
+      setFitopiaCandidates([]);
+    } finally {
+      setCandidatesLoading(false);
+    }
+  }, [gymId, items]);
+
   const openCreate = () => {
     setEditing(null);
     setUserId('');
@@ -134,6 +168,7 @@ export const EmployeesPage: React.FC = () => {
     setEndDate('');
     setFormErrors({});
     setFormOpen(true);
+    void loadFitopiaCandidates();
   };
 
   const openEdit = async (r: StaffEmployee) => {
@@ -151,6 +186,7 @@ export const EmployeesPage: React.FC = () => {
     try {
       const fresh = await employeesService.get(gymId, r.id);
       if (!fresh) return;
+      setEditing(fresh);
       setUserId(String(fresh.user ?? ''));
       setRole(String(fresh.role || 'staff'));
       setEmployeeNumber(fresh.employee_number || '');
@@ -189,7 +225,7 @@ export const EmployeesPage: React.FC = () => {
     if (!editing) {
       const uid = Number(userId);
       if (!userId.trim() || !Number.isInteger(uid) || uid <= 0) {
-        errs.user = 'شناسه کاربر فیتوپیا باید عدد معتبر باشد.';
+        errs.user = 'لطفاً یک کاربر فیتوپیا را از لیست انتخاب کنید.';
       }
     }
     if (!role) errs.role = 'نقش را انتخاب کنید.';
@@ -298,9 +334,13 @@ export const EmployeesPage: React.FC = () => {
       key: 'is_active',
       header: 'وضعیت',
       render: (r) => (
-        <span className={`inline-flex px-2 py-0.5 rounded-lg text-[11px] font-medium border ${
-          r?.is_active !== false ? 'bg-success-soft text-success-text border-success/20' : 'bg-danger-soft text-danger-text border-danger/20'
-        }`}>
+        <span
+          className={`inline-flex px-2 py-0.5 rounded-lg text-[11px] font-medium border ${
+            r?.is_active !== false
+              ? 'bg-success-soft text-success-text border-success/20'
+              : 'bg-danger-soft text-danger-text border-danger/20'
+          }`}
+        >
           {r?.is_active !== false ? 'فعال' : 'غیرفعال'}
         </span>
       ),
@@ -309,7 +349,9 @@ export const EmployeesPage: React.FC = () => {
       key: 'start_date',
       header: 'شروع همکاری',
       render: (r) => (
-        <span className="text-sm text-muted tabular-nums">{r?.start_date ? formatJalaliNumeric(r.start_date) : '—'}</span>
+        <span className="text-sm text-muted tabular-nums">
+          {r?.start_date ? formatJalaliNumeric(r.start_date) : '—'}
+        </span>
       ),
     },
     {
@@ -318,18 +360,42 @@ export const EmployeesPage: React.FC = () => {
       className: 'w-36',
       render: (r) => (
         <div className="flex items-center gap-1">
-          <button type="button" onClick={() => openDetail(r)} className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-surface-hover" aria-label="مشاهده جزئیات" title="مشاهده">
+          <button
+            type="button"
+            onClick={() => openDetail(r)}
+            className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-surface-hover"
+            aria-label="مشاهده جزئیات"
+            title="مشاهده"
+          >
             <Eye className="w-4 h-4" />
           </button>
           {canManage && (
             <>
-              <button type="button" onClick={() => openEdit(r)} className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-primary-soft" aria-label="ویرایش کارمند" title="ویرایش">
+              <button
+                type="button"
+                onClick={() => openEdit(r)}
+                className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-primary-soft"
+                aria-label="ویرایش کارمند"
+                title="ویرایش"
+              >
                 <Edit3 className="w-4 h-4" />
               </button>
-              <button type="button" onClick={() => openPermissions(r)} className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-primary-soft" aria-label="تنظیم مجوزها" title="مجوزها">
+              <button
+                type="button"
+                onClick={() => openPermissions(r)}
+                className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-primary-soft"
+                aria-label="تنظیم مجوزها"
+                title="مجوزها"
+              >
                 <Shield className="w-4 h-4" />
               </button>
-              <button type="button" onClick={() => setDeleting(r)} className="p-1.5 rounded-lg text-muted hover:text-danger-text hover:bg-danger-soft" aria-label="حذف کارمند" title="حذف">
+              <button
+                type="button"
+                onClick={() => setDeleting(r)}
+                className="p-1.5 rounded-lg text-muted hover:text-danger-text hover:bg-danger-soft"
+                aria-label="حذف کارمند"
+                title="حذف"
+              >
                 <Trash2 className="w-4 h-4" />
               </button>
             </>
@@ -357,12 +423,21 @@ export const EmployeesPage: React.FC = () => {
         subtitle="مدیریت کارکنان باشگاه، نقش‌ها و مجوزها"
         actions={
           <div className="flex items-center gap-2">
-            <button type="button" onClick={load} disabled={loading} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl border border-border text-secondary hover:bg-surface-hover">
+            <button
+              type="button"
+              onClick={load}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl border border-border text-secondary hover:bg-surface-hover"
+            >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               بروزرسانی
             </button>
             {canManage && (
-              <button type="button" onClick={openCreate} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl bg-primary text-primary-fg font-bold">
+              <button
+                type="button"
+                onClick={openCreate}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl bg-primary text-primary-fg font-bold"
+              >
                 <UserPlus className="w-4 h-4" />
                 کارمند جدید
               </button>
@@ -372,12 +447,30 @@ export const EmployeesPage: React.FC = () => {
       />
 
       <div className="flex flex-wrap gap-2 items-center">
-        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجو نام کاربری، موبایل یا کد پرسنلی..." className="flex-1 min-w-[180px] rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
-        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="جستجو نام کاربری، موبایل یا کد پرسنلی..."
+          className="flex-1 min-w-[180px] rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+        />
+        <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink"
+        >
           <option value="all">همه نقش‌ها</option>
-          {ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          {ROLE_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
         </select>
-        <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value as typeof activeFilter)} className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink">
+        <select
+          value={activeFilter}
+          onChange={(e) => setActiveFilter(e.target.value as typeof activeFilter)}
+          className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink"
+        >
           <option value="all">همه وضعیت‌ها</option>
           <option value="active">فعال</option>
           <option value="inactive">غیرفعال</option>
@@ -393,7 +486,11 @@ export const EmployeesPage: React.FC = () => {
           description={items.length ? 'با فیلترهای فعلی نتیجه‌ای نیست.' : 'هنوز کارمندی ثبت نشده است.'}
           action={
             canManage && !items.length ? (
-              <button type="button" onClick={openCreate} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-xl bg-primary text-primary-fg font-bold">
+              <button
+                type="button"
+                onClick={openCreate}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-xl bg-primary text-primary-fg font-bold"
+              >
                 <UserPlus className="w-4 h-4" />
                 افزودن اولین کارمند
               </button>
@@ -406,33 +503,89 @@ export const EmployeesPage: React.FC = () => {
 
       <Modal isOpen={formOpen} onClose={() => setFormOpen(false)} title={editing ? 'ویرایش کارمند' : 'کارمند جدید'}>
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+          {editing ? (
+            <div className="space-y-2">
+              <p className="text-[11px] font-medium text-muted">کاربر فیتوپیا</p>
+              <div className="rounded-xl border border-border bg-surface-elevated px-3.5 py-2.5">
+                <p className="text-sm font-medium text-ink">{editing.username || '—'}</p>
+                {editing.user_phone ? (
+                  <p className="text-xs text-muted dir-ltr font-mono mt-0.5">{editing.user_phone}</p>
+                ) : null}
+              </div>
+              <p className="text-[11px] text-muted">کاربر پس از ثبت قابل تغییر نیست.</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <FormField
+                label="کاربر فیتوپیا"
+                required
+                isSelect
+                value={userId}
+                error={formErrors.user}
+                options={[
+                  {
+                    value: '',
+                    label: candidatesLoading ? 'در حال بارگذاری...' : 'انتخاب کاربر (نام / موبایل)',
+                  },
+                  ...fitopiaCandidates.map((c) => ({ value: String(c.id), label: c.label })),
+                ]}
+                onChange={(e) => setUserId(e.target.value)}
+                helpText={
+                  fitopiaCandidates.length
+                    ? 'فقط کاربرانی که حساب فیتوپیا دارند (از اعضای باشگاه) نمایش داده می‌شوند.'
+                    : 'عضوی با حساب فیتوپیا یافت نشد. ابتدا عضو را با کاربر فیتوپیا ثبت کنید.'
+                }
+              />
+            </div>
+          )}
           <FormField
-            label="شناسه کاربر فیتوپیا"
-            required={!editing}
-            type="number"
-            min={1}
-            value={userId}
-            error={formErrors.user}
-            disabled={!!editing}
-            helpText={editing ? 'شناسه کاربر پس از ایجاد قابل تغییر نیست.' : 'کاربر باید از قبل در سیستم فیتوپیا ثبت شده باشد.'}
-            onChange={(e) => setUserId(e.target.value)}
+            label="نقش"
+            required
+            isSelect
+            value={role}
+            error={formErrors.role}
+            options={ROLE_OPTIONS}
+            onChange={(e) => setRole(e.target.value)}
           />
-          <FormField label="نقش" required isSelect value={role} error={formErrors.role} options={ROLE_OPTIONS} onChange={(e) => setRole(e.target.value)} />
-          <FormField label="کد پرسنلی" value={employeeNumber} placeholder="اختیاری" onChange={(e) => setEmployeeNumber(e.target.value)} />
+          <FormField
+            label="کد پرسنلی"
+            value={employeeNumber}
+            placeholder="اختیاری"
+            onChange={(e) => setEmployeeNumber(e.target.value)}
+          />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <JalaliDatePicker label="تاریخ شروع" value={startDate} onChange={setStartDate} />
             <div>
               <JalaliDatePicker label="تاریخ پایان" value={endDate} onChange={setEndDate} />
-              {formErrors.end_date && <p className="text-[11px] text-danger-text mt-1">{formErrors.end_date}</p>}
+              {formErrors.end_date && (
+                <p className="text-[11px] text-danger-text mt-1">{formErrors.end_date}</p>
+              )}
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm text-ink cursor-pointer">
-            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="rounded border-border" />
+            <input
+              type="checkbox"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+              className="rounded border-border"
+            />
             کارمند فعال است
           </label>
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" disabled={saving} onClick={() => setFormOpen(false)} className="px-4 py-2 text-sm rounded-lg text-muted hover:bg-surface-hover">انصراف</button>
-            <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-fg font-bold disabled:opacity-50">
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => setFormOpen(false)}
+              className="px-4 py-2 text-sm rounded-lg text-muted hover:bg-surface-hover"
+            >
+              انصراف
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleSave}
+              className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-fg font-bold disabled:opacity-50"
+            >
               {saving ? 'در حال ذخیره...' : 'ذخیره'}
             </button>
           </div>
@@ -448,13 +601,26 @@ export const EmployeesPage: React.FC = () => {
             <DetailRow label="نقش" value={roleLabel(detail.role)} />
             <DetailRow label="کد پرسنلی" value={detail.employee_number || '—'} />
             <DetailRow label="وضعیت" value={detail.is_active !== false ? 'فعال' : 'غیرفعال'} />
-            <DetailRow label="شروع همکاری" value={detail.start_date ? formatJalaliNumeric(detail.start_date) : '—'} />
-            <DetailRow label="پایان همکاری" value={detail.end_date ? formatJalaliNumeric(detail.end_date) : '—'} />
+            <DetailRow
+              label="شروع همکاری"
+              value={detail.start_date ? formatJalaliNumeric(detail.start_date) : '—'}
+            />
+            <DetailRow
+              label="پایان همکاری"
+              value={detail.end_date ? formatJalaliNumeric(detail.end_date) : '—'}
+            />
             <DetailRow
               label="مجوزها"
-              value={parsePermissionCodes(detail.permission_codes).map((c) => PERMISSION_LABELS[c] || c).join('، ') || 'پیش‌فرض نقش'}
+              value={
+                parsePermissionCodes(detail.permission_codes)
+                  .map((c) => PERMISSION_LABELS[c] || c)
+                  .join('، ') || 'پیش‌فرض نقش'
+              }
             />
-            <DetailRow label="تاریخ ثبت" value={detail.created_at ? formatJalaliDateTime(detail.created_at) : '—'} />
+            <DetailRow
+              label="تاریخ ثبت"
+              value={detail.created_at ? formatJalaliDateTime(detail.created_at) : '—'}
+            />
           </div>
         )}
       </Modal>
@@ -473,7 +639,11 @@ export const EmployeesPage: React.FC = () => {
               >
                 اعمال پیش‌فرض نقش
               </button>
-              <button type="button" className="text-xs text-muted hover:underline" onClick={() => setCodes([...ALL_PERMISSIONS])}>
+              <button
+                type="button"
+                className="text-xs text-muted hover:underline"
+                onClick={() => setCodes([...ALL_PERMISSIONS])}
+              >
                 انتخاب همه
               </button>
               <button type="button" className="text-xs text-muted hover:underline" onClick={() => setCodes([])}>
@@ -482,12 +652,17 @@ export const EmployeesPage: React.FC = () => {
             </div>
             <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
               {ALL_PERMISSIONS.map((code) => (
-                <label key={code} className="flex items-center gap-2 text-sm text-ink p-2 rounded-lg hover:bg-surface-hover cursor-pointer">
+                <label
+                  key={code}
+                  className="flex items-center gap-2 text-sm text-ink p-2 rounded-lg hover:bg-surface-hover cursor-pointer"
+                >
                   <input
                     type="checkbox"
                     checked={codes.includes(code)}
                     onChange={(e) =>
-                      setCodes((prev) => (e.target.checked ? [...prev, code] : prev.filter((c) => c !== code)))
+                      setCodes((prev) =>
+                        e.target.checked ? [...prev, code] : prev.filter((c) => c !== code),
+                      )
                     }
                     className="accent-primary"
                   />
