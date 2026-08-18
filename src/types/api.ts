@@ -103,7 +103,6 @@ export interface GymOfferingInput {
   is_active?: boolean; schedules?: OfferingSchedule[];
 }
 
-/** OpenAPI: CourseStatusEnum */
 export type CourseStatus = 'draft' | 'open' | 'full' | 'closed' | 'cancelled';
 
 export interface Course {
@@ -173,11 +172,28 @@ export interface AuditLog {
   object_type?: string; object_id?: string; object_repr?: string | null;
   metadata?: Record<string, unknown>; created_at?: string;
 }
+
+export type TicketRequestType = 'field_edit' | 'new_sport' | string;
+export type TicketStatus = 'pending' | 'approved' | 'rejected' | string;
+
 export interface GymChangeRequest {
-  id: number; request_type: string; status: string; payload?: Record<string, unknown>;
-  admin_note?: string; created_at?: string; messages?: TicketMessage[];
+  id: number;
+  request_type: TicketRequestType;
+  payload?: Record<string, unknown> | string | null;
+  status: TicketStatus;
+  admin_note?: string | null;
+  created_at?: string;
+  reviewed_at?: string | null;
+  messages?: TicketMessage[];
 }
-export interface TicketMessage { id: number; sender_role: string; message: string; created_at: string; }
+
+export interface TicketMessage {
+  id: number;
+  sender_role: string;
+  message: string;
+  created_at: string;
+}
+
 export interface GymUpdatePayload {
   description?: string; phone?: string; whatsapp?: string; telegram?: string;
   instagram?: string; website?: string; rules?: string; working_hours?: string;
