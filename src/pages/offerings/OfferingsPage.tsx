@@ -24,13 +24,7 @@ import type {
 import { formatJalaliDateTime } from '../../utils/jalaliUtils';
 
 const DAY_LABELS: Record<number, string> = {
-  0: 'شنبه',
-  1: 'یکشنبه',
-  2: 'دوشنبه',
-  3: 'سه‌شنبه',
-  4: 'چهارشنبه',
-  5: 'پنجشنبه',
-  6: 'جمعه',
+  0: 'شنبه', 1: 'یکشنبه', 2: 'دوشنبه', 3: 'سه‌شنبه', 4: 'چهارشنبه', 5: 'پنجشنبه', 6: 'جمعه',
 };
 
 const SKILL_OPTIONS: { value: SkillLevel; label: string }[] = [
@@ -462,10 +456,16 @@ export const OfferingsPage: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 setSuggestName('');
-                setSuggestCategory(categories[0] ? String(categories[0].id) : '');
                 setSuggestOpen(true);
+                try {
+                  const cats = await sportsService.listCategories();
+                  setCategories(cats || []);
+                  setSuggestCategory(cats[0] ? String(cats[0].id) : '');
+                } catch {
+                  setSuggestCategory(categories[0] ? String(categories[0].id) : '');
+                }
               }}
               className="px-3 py-2 text-sm rounded-xl border border-border text-muted hover:text-ink hover:bg-surface-hover"
             >
@@ -531,12 +531,7 @@ export const OfferingsPage: React.FC = () => {
             options={[{ value: '', label: 'انتخاب رشته' }, ...sports.map((s) => ({ value: String(s.id), label: s.name }))]}
             onChange={(e) => setForm({ ...form, sport: e.target.value })}
           />
-          <FormField
-            label="توضیحات"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder="توضیح کوتاه درباره این خدمت"
-          />
+          <FormField label="توضیحات" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="توضیح کوتاه درباره این خدمت" />
 
           <div>
             <p className="text-[11px] font-medium text-muted mb-2">مربیان</p>
@@ -552,9 +547,7 @@ export const OfferingsPage: React.FC = () => {
                       type="button"
                       onClick={() => toggleCoach(c.id)}
                       className={`px-3 py-1.5 rounded-xl text-xs border transition-colors ${
-                        on
-                          ? 'bg-primary-soft border-primary text-primary font-semibold'
-                          : 'border-border text-muted hover:bg-surface-hover'
+                        on ? 'bg-primary-soft border-primary text-primary font-semibold' : 'border-border text-muted hover:bg-surface-hover'
                       }`}
                     >
                       {c.full_name}
@@ -574,23 +567,11 @@ export const OfferingsPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <FormField label="ظرفیت" type="number" min={0} value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })} />
             <FormField label="مدت جلسه (دقیقه)" type="number" min={0} value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: e.target.value })} />
-            <FormField
-              label="سطح"
-              isSelect
-              value={String(form.skill_level)}
-              options={SKILL_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-              onChange={(e) => setForm({ ...form, skill_level: e.target.value })}
-            />
+            <FormField label="سطح" isSelect value={String(form.skill_level)} options={SKILL_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onChange={(e) => setForm({ ...form, skill_level: e.target.value })} />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <FormField
-              label="محدودیت جنسیت"
-              isSelect
-              value={String(form.gender_restriction)}
-              options={GENDER_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-              onChange={(e) => setForm({ ...form, gender_restriction: e.target.value })}
-            />
+            <FormField label="محدودیت جنسیت" isSelect value={String(form.gender_restriction)} options={GENDER_OPTIONS.map((o) => ({ value: o.value, label: o.label }))} onChange={(e) => setForm({ ...form, gender_restriction: e.target.value })} />
             <FormField label="حداقل سن" type="number" min={0} value={form.min_age} onChange={(e) => setForm({ ...form, min_age: e.target.value })} />
             <FormField label="حداکثر سن" type="number" min={0} value={form.max_age} error={formErrors.max_age} onChange={(e) => setForm({ ...form, max_age: e.target.value })} />
           </div>
@@ -606,9 +587,7 @@ export const OfferingsPage: React.FC = () => {
                 <Clock className="w-4 h-4 text-primary" />
                 برنامه زمانی
               </p>
-              <button type="button" onClick={addSchedule} className="text-xs text-primary font-medium hover:underline">
-                + افزودن سانس
-              </button>
+              <button type="button" onClick={addSchedule} className="text-xs text-primary font-medium hover:underline">+ افزودن سانس</button>
             </div>
             {formErrors.schedules && <p className="text-[11px] text-danger-text">{formErrors.schedules}</p>}
             {form.schedules.length === 0 ? (
@@ -618,11 +597,7 @@ export const OfferingsPage: React.FC = () => {
                 <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
                   <div>
                     <label className="text-[11px] text-muted">روز</label>
-                    <select
-                      className="w-full rounded-xl border border-border bg-input px-2 py-2 text-sm text-ink"
-                      value={s.day_of_week}
-                      onChange={(e) => updateSchedule(idx, { day_of_week: Number(e.target.value) })}
-                    >
+                    <select className="w-full rounded-xl border border-border bg-input px-2 py-2 text-sm text-ink" value={s.day_of_week} onChange={(e) => updateSchedule(idx, { day_of_week: Number(e.target.value) })}>
                       {Object.entries(DAY_LABELS).map(([v, label]) => (
                         <option key={v} value={v}>{label}</option>
                       ))}
@@ -630,21 +605,11 @@ export const OfferingsPage: React.FC = () => {
                   </div>
                   <div>
                     <label className="text-[11px] text-muted">شروع</label>
-                    <input
-                      type="time"
-                      className="w-full rounded-xl border border-border bg-input px-2 py-2 text-sm text-ink"
-                      value={timeInputValue(s.start_time)}
-                      onChange={(e) => updateSchedule(idx, { start_time: e.target.value })}
-                    />
+                    <input type="time" className="w-full rounded-xl border border-border bg-input px-2 py-2 text-sm text-ink" value={timeInputValue(s.start_time)} onChange={(e) => updateSchedule(idx, { start_time: e.target.value })} />
                   </div>
                   <div>
                     <label className="text-[11px] text-muted">پایان</label>
-                    <input
-                      type="time"
-                      className="w-full rounded-xl border border-border bg-input px-2 py-2 text-sm text-ink"
-                      value={timeInputValue(s.end_time)}
-                      onChange={(e) => updateSchedule(idx, { end_time: e.target.value })}
-                    />
+                    <input type="time" className="w-full rounded-xl border border-border bg-input px-2 py-2 text-sm text-ink" value={timeInputValue(s.end_time)} onChange={(e) => updateSchedule(idx, { end_time: e.target.value })} />
                   </div>
                   <button type="button" onClick={() => removeSchedule(idx)} className="p-2 text-muted hover:text-danger-text" aria-label="حذف سانس">
                     <X className="w-4 h-4" />
@@ -655,9 +620,7 @@ export const OfferingsPage: React.FC = () => {
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" disabled={saving} onClick={() => setFormOpen(false)} className="px-4 py-2 text-sm rounded-lg text-muted hover:bg-surface-hover">
-              انصراف
-            </button>
+            <button type="button" disabled={saving} onClick={() => setFormOpen(false)} className="px-4 py-2 text-sm rounded-lg text-muted hover:bg-surface-hover">انصراف</button>
             <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-fg font-bold disabled:opacity-50">
               {saving ? 'در حال ذخیره...' : 'ذخیره'}
             </button>
@@ -679,14 +642,7 @@ export const OfferingsPage: React.FC = () => {
             <DetailRow label="مدت جلسه" value={detail.duration_minutes != null ? `${detail.duration_minutes} دقیقه` : '—'} />
             <DetailRow label="سطح" value={skillLabel(detail.skill_level)} />
             <DetailRow label="جنسیت" value={genderLabel(detail.gender_restriction)} />
-            <DetailRow
-              label="سن"
-              value={
-                detail.min_age != null || detail.max_age != null
-                  ? `${detail.min_age ?? '—'} تا ${detail.max_age ?? '—'}`
-                  : '—'
-              }
-            />
+            <DetailRow label="سن" value={detail.min_age != null || detail.max_age != null ? `${detail.min_age ?? '—'} تا ${detail.max_age ?? '—'}` : '—'} />
             <DetailRow label="وضعیت" value={detail.is_active !== false ? 'فعال' : 'غیرفعال'} />
             <div>
               <p className="text-muted mb-2">برنامه زمانی</p>
@@ -715,7 +671,10 @@ export const OfferingsPage: React.FC = () => {
             required
             isSelect
             value={suggestCategory}
-            options={[{ value: '', label: 'انتخاب دسته' }, ...categories.map((c) => ({ value: String(c.id), label: c.name }))]}
+            options={[
+              { value: '', label: categories.length ? 'انتخاب دسته' : 'در حال بارگذاری...' },
+              ...categories.map((c) => ({ value: String(c.id), label: c.title || c.name })),
+            ]}
             onChange={(e) => setSuggestCategory(e.target.value)}
           />
           <p className="text-[11px] text-muted">پیشنهاد برای بررسی تیم فیتوپیا ارسال می‌شود.</p>
