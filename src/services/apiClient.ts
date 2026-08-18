@@ -48,7 +48,10 @@ api.interceptors.response.use(
   (error: AxiosError) => {
     const status = error.response?.status;
     const url = error.config?.url || '';
-    const isAuth = url.includes('/auth/login') || url.includes('/accounts/login');
+    const isAuth =
+      url.includes('/auth/login') ||
+      url.includes('/accounts/login') ||
+      url.includes('/accounts/logout');
     if (status === 401 && !isAuth && !isRedirecting) {
       isRedirecting = true;
       tokenStorage.clear();
@@ -57,7 +60,9 @@ api.interceptors.response.use(
         localStorage.setItem('fitopia_return_to', path);
         window.location.assign('/login');
       }
-      setTimeout(() => { isRedirecting = false; }, 2000);
+      setTimeout(() => {
+        isRedirecting = false;
+      }, 2000);
     }
     return Promise.reject(error);
   }
@@ -75,6 +80,23 @@ export function unwrapList<T>(data: unknown): T[] {
   return [];
 }
 
+const FIELD_LABELS: Record<string, string> = {
+  full_name: 'نام',
+  phone: 'موبایل',
+  join_date: 'تاریخ عضویت',
+  sport: 'رشته',
+  coach: 'مربی',
+  sessions_total: 'تعداد جلسات',
+  sessions_remaining: 'جلسات باقی‌مانده',
+  sessions_used: 'جلسات مصرف‌شده',
+  price_paid: 'مبلغ',
+  membership_status: 'وضعیت عضویت',
+  membership_type: 'نوع عضویت',
+  source: 'منبع',
+  notes: 'یادداشت',
+  non_field_errors: 'خطا',
+};
+
 export function getErrorMessage(error: unknown, fallback = 'خطایی رخ داد.'): string {
   if (!error || typeof error !== 'object') return fallback;
   const err = error as AxiosError<Record<string, unknown>>;
@@ -87,14 +109,18 @@ export function getErrorMessage(error: unknown, fallback = 'خطایی رخ دا
   if (typeof data.detail === 'string') return data.detail;
   if (typeof data.error === 'string') return data.error;
   if (typeof data.message === 'string') return data.message;
-  if (Array.isArray(data.non_field_errors) && data.non_field_errors[0]) return String(data.non_field_errors[0]);
+  if (Array.isArray(data.non_field_errors) && data.non_field_errors[0]) {
+    return String(data.non_field_errors[0]);
+  }
   for (const k of Object.keys(data)) {
     const v = data[k];
-    if (Array.isArray(v) && v[0]) return `${k}: ${v[0]}`;
-    if (typeof v === 'string') return v;
+    const label = FIELD_LABELS[k] || k;
+    if (Array.isArray(v) && v[0]) return `${label}: ${v[0]}`;
+    if (typeof v === 'string') return `${label}: ${v}`;
   }
   if (err.response?.status === 403) return 'شما دسترسی انجام این عملیات را ندارید.';
   if (err.response?.status === 404) return 'مورد درخواستی یافت نشد.';
+  if (err.response?.status === 401) return 'نشست شما منقضی شده است. دوباره وارد شوید.';
   if (err.response?.status === 400) return 'اطلاعات ارسالی نامعتبر است.';
   return fallback;
 }
