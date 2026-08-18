@@ -41,94 +41,41 @@ export type MembershipType = 'session_pack' | 'monthly' | 'course' | 'drop_in' |
 export type MemberSource = 'token' | 'manual' | string;
 
 export interface GymMember {
-  id: number;
-  gym?: number;
-  fitopia_user?: number | null;
-  full_name: string;
-  phone: string;
-  sport: number | null;
-  sport_name?: string;
-  coach?: number | null;
-  coach_name?: string | null;
-  source?: MemberSource;
-  added_by?: number | null;
-  added_by_name?: string | null;
-  sessions_total?: number | null;
-  sessions_remaining?: number | null;
-  sessions_used?: number | null;
-  price_paid?: number | null;
-  join_date: string;
-  photo?: string | null;
-  membership_status?: MembershipStatus | string;
-  membership_type?: MembershipType;
-  membership_start?: string | null;
-  membership_end?: string | null;
-  notes?: string | null;
-  is_active?: boolean;
-  last_visit_at?: string | null;
-  sessions_remaining_calc?: string | number | null;
-  is_fitopia_user?: boolean | string;
-  created_at?: string;
-  updated_at?: string;
+  id: number; gym?: number; fitopia_user?: number | null; full_name: string; phone: string;
+  sport: number | null; sport_name?: string; coach?: number | null; coach_name?: string | null;
+  source?: MemberSource; added_by?: number | null; added_by_name?: string | null;
+  sessions_total?: number | null; sessions_remaining?: number | null; sessions_used?: number | null;
+  price_paid?: number | null; join_date: string; photo?: string | null;
+  membership_status?: MembershipStatus | string; membership_type?: MembershipType;
+  membership_start?: string | null; membership_end?: string | null; notes?: string | null;
+  is_active?: boolean; last_visit_at?: string | null; sessions_remaining_calc?: string | number | null;
+  is_fitopia_user?: boolean | string; created_at?: string; updated_at?: string;
 }
 export type GymCustomer = GymMember;
 
 export interface GymMemberInput {
-  fitopia_user?: number | null;
-  full_name: string;
-  phone: string;
-  sport?: number | null;
-  coach?: number | null;
-  source?: MemberSource;
-  sessions_total?: number | null;
-  sessions_remaining?: number | null;
-  sessions_used?: number | null;
-  price_paid?: number | null;
-  join_date: string;
-  photo?: string | null;
-  membership_status?: MembershipStatus | string;
-  membership_type?: MembershipType;
-  membership_start?: string | null;
-  membership_end?: string | null;
-  notes?: string | null;
-  is_active?: boolean;
+  fitopia_user?: number | null; full_name: string; phone: string; sport?: number | null; coach?: number | null;
+  source?: MemberSource; sessions_total?: number | null; sessions_remaining?: number | null;
+  sessions_used?: number | null; price_paid?: number | null; join_date: string; photo?: string | null;
+  membership_status?: MembershipStatus | string; membership_type?: MembershipType;
+  membership_start?: string | null; membership_end?: string | null; notes?: string | null; is_active?: boolean;
 }
 
 export interface GymCoach {
-  id: number;
-  full_name: string;
-  image?: string | null;
-  specialty?: string | null;
-  sports?: number[];
+  id: number; full_name: string; image?: string | null; specialty?: string | null; sports?: number[];
 }
 export interface GymCoachInput {
-  full_name: string;
-  specialty?: string;
-  sports?: number[];
-  image?: File | string | null;
+  full_name: string; specialty?: string; sports?: number[]; image?: File | string | null;
 }
 
 export interface StaffEmployee {
-  id: number;
-  user: number;
-  username?: string;
-  user_phone?: string;
-  gym?: number;
-  role: StaffRole | string;
-  is_active: boolean;
-  start_date?: string | null;
-  end_date?: string | null;
-  employee_number?: string;
-  permission_codes?: string[] | string;
-  created_at?: string;
+  id: number; user: number; username?: string; user_phone?: string; gym?: number;
+  role: StaffRole | string; is_active: boolean; start_date?: string | null; end_date?: string | null;
+  employee_number?: string; permission_codes?: string[] | string; created_at?: string;
 }
 export interface StaffEmployeeInput {
-  user: number;
-  role: StaffRole | string;
-  is_active?: boolean;
-  start_date?: string | null;
-  end_date?: string | null;
-  employee_number?: string;
+  user: number; role: StaffRole | string; is_active?: boolean;
+  start_date?: string | null; end_date?: string | null; employee_number?: string;
 }
 
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -136,56 +83,49 @@ export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'all';
 export type GenderRestriction = 'all' | 'male' | 'female';
 
 export interface OfferingSchedule {
-  id?: number;
-  day_of_week: number;
-  start_time: string;
-  end_time: string;
+  id?: number; day_of_week: number; start_time: string; end_time: string;
 }
 
 export interface GymOffering {
-  id: number;
-  gym?: number;
-  sport: number | null;
-  sport_name?: string;
-  description?: string;
-  coaches?: number[];
-  capacity?: number | null;
-  single_session_price?: number | null;
-  course_price?: number | null;
-  monthly_price?: number | null;
-  duration_minutes?: number | null;
-  skill_level?: SkillLevel | string;
-  gender_restriction?: GenderRestriction | string;
-  min_age?: number | null;
-  max_age?: number | null;
-  is_active?: boolean;
-  schedules?: OfferingSchedule[];
-  created_at?: string;
-  updated_at?: string;
+  id: number; gym?: number; sport: number | null; sport_name?: string; description?: string;
+  coaches?: number[]; capacity?: number | null; single_session_price?: number | null;
+  course_price?: number | null; monthly_price?: number | null; duration_minutes?: number | null;
+  skill_level?: SkillLevel | string; gender_restriction?: GenderRestriction | string;
+  min_age?: number | null; max_age?: number | null; is_active?: boolean;
+  schedules?: OfferingSchedule[]; created_at?: string; updated_at?: string;
 }
 
 export interface GymOfferingInput {
-  sport: number | null;
-  description?: string;
-  coaches?: number[];
-  capacity?: number | null;
-  single_session_price?: number | null;
-  course_price?: number | null;
-  monthly_price?: number | null;
-  duration_minutes?: number | null;
-  skill_level?: SkillLevel | string;
-  gender_restriction?: GenderRestriction | string;
-  min_age?: number | null;
-  max_age?: number | null;
-  is_active?: boolean;
-  schedules?: OfferingSchedule[];
+  sport: number | null; description?: string; coaches?: number[]; capacity?: number | null;
+  single_session_price?: number | null; course_price?: number | null; monthly_price?: number | null;
+  duration_minutes?: number | null; skill_level?: SkillLevel | string;
+  gender_restriction?: GenderRestriction | string; min_age?: number | null; max_age?: number | null;
+  is_active?: boolean; schedules?: OfferingSchedule[];
 }
+
+/** OpenAPI: CourseStatusEnum */
+export type CourseStatus = 'draft' | 'open' | 'full' | 'closed' | 'cancelled';
+
 export interface Course {
-  id: number; title: string; sport?: number | null; sport_name?: string; offering?: number | null; coach?: number | null;
-  description?: string; start_date?: string; end_date?: string; start_time?: string | null; end_time?: string | null;
-  days_of_week?: string; capacity?: number | null; price?: number | null; status?: string; is_active?: boolean;
-  enrollment_count?: number; remaining_capacity?: number;
+  id: number; gym?: number; title: string; sport?: number | null; sport_name?: string;
+  offering?: number | null; coach?: number | null; description?: string;
+  start_date?: string | null; end_date?: string | null; start_time?: string | null; end_time?: string | null;
+  days_of_week?: string | null; capacity?: number | null; price?: number | null;
+  status?: CourseStatus | string; is_active?: boolean; enrollment_count?: number; remaining_capacity?: number;
+  created_at?: string; updated_at?: string;
 }
+
+export interface CourseInput {
+  sport?: number | null; offering?: number | null; coach?: number | null; title: string;
+  description?: string; start_date?: string | null; end_date?: string | null;
+  start_time?: string | null; end_time?: string | null; days_of_week?: string | null;
+  capacity?: number | null; price?: number | null; status?: CourseStatus | string; is_active?: boolean;
+}
+
+export interface CourseEnrollInput {
+  customer: number; price_paid?: number | null;
+}
+
 export interface GymVisit {
   id: number; customer?: number | null; customer_name?: string; guest_name?: string; guest_phone?: string;
   check_in_at?: string | null; check_out_at?: string | null; is_open?: boolean; method?: string; source?: string;
@@ -202,13 +142,7 @@ export interface GymPriceInput {
   quarterly_price?: number | null; yearly_price: number;
 }
 export interface SuggestNewSportInput { name: string; category_id: number; }
-/** OpenAPI SportCategory uses `title` (not name) */
-export interface SportCategory {
-  id: number;
-  title?: string;
-  name: string;
-  slug?: string;
-}
+export interface SportCategory { id: number; title?: string; name: string; slug?: string; }
 export interface Sport { id: number; name: string; category?: number | null; category_name?: string; }
 
 export interface FinanceTransaction {
