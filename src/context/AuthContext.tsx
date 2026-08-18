@@ -1,7 +1,15 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import authService from '../services/auth/authService';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import type { AuthUser, GymAccess, PermissionCode } from '../types/api';
 import { hasPermission } from '../types/api';
+import { authService } from '../services/auth/authService';
+import { tokenStorage } from '../services/apiClient';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -23,8 +31,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [gymAccessList, setGymAccessList] = useState<GymAccess[]>([]);
@@ -32,13 +40,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const s = authService.getStoredSession();
-    if (s.access) {
+    const session = authService.getStoredSession();
+    if (session.access) {
       setIsAuthenticated(true);
-      setToken(s.access);
-      setUser(s.user);
-      setGymAccessList(s.gyms);
-      setCurrentGymState(s.currentGym);
+      setToken(session.access);
+      setUser(session.user);
+      setGymAccessList(session.gyms);
+      setCurrentGymState(session.currentGym);
     }
     setLoading(false);
   }, []);
@@ -61,7 +69,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const logout = useCallback(() => {
-    authService.logout();
+    // Clear UI state immediately; fire-and-forget server logout
+    void authService.logout();
     setIsAuthenticated(false);
     setToken(null);
     setUser(null);
@@ -94,26 +103,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const can = useCallback(
     (code: PermissionCode) => {
       if (!currentGym) return false;
-      return hasPermission(currentGym.role, undefined, code);
+      return hasPermission(String(currentGym.role), undefined, code);
     },
-    [currentGym]
+    [currentGym],
   );
 
-  const gymId = useMemo(() => (currentGym ? currentGym.gym : null), [currentGym]);
+  const gymId = currentGym?.gym ?? null;
 
   const value = useMemo(
     () => ({
       isAuthenticated, loading, token, user, gymAccessList, currentGym, error,
       login, logout, setCurrentGym, clearError: () => setError(null), refreshGyms, can, gymId,
     }),
-    [isAuthenticated, loading, token, user, gymAccessList, currentGym, error, login, logout, setCurrentGym, refreshGyms, can, gymId]
+    [isAuthenticated, loading, token, user, gymAccessList, currentGym, error, login, logout, setCurrentGym, refreshGyms, can, gymId],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = () => {
+export function useAuth(): AuthContextType {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
-};
+}
