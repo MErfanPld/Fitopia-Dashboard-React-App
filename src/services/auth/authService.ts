@@ -69,16 +69,17 @@ export const authService = {
               '',
           );
           const r = String(
-            (acc as { tokens?: { refresh?: string }; refresh?: string }).tokens?.refresh ||
+            (acc as { tokens?: { refresh?: string }; refresh?: string; refresh_token?: string }).tokens?.refresh ||
               (acc as { refresh?: string }).refresh ||
+              (acc as { refresh_token?: string }).refresh_token ||
               '',
           );
           if (a && isJwt(a)) {
             access = a;
-            refresh = r;
+            refresh = r || refresh;
           }
         } catch {
-          /* keep */
+          /* keep gym-panel failure as primary */
         }
       }
 
@@ -110,10 +111,24 @@ export const authService = {
     }
   },
 
-  logout() {
-    tokenStorage.clear();
-    localStorage.removeItem(USER_KEY);
-    api.post('/accounts/logout/').catch(() => undefined);
+  /**
+   * Client session is always cleared.
+   * Best-effort server logout while JWT is still attached; ignore 401/network errors.
+   */
+  async logout(): Promise<void> {
+    try {
+      const token = tokenStorage.getAccess();
+      if (token) {
+        await api.post('/accounts/logout/');
+      }
+    } catch {
+      /* server may return 401 if token already expired — still clear local session */
+    } finally {
+      tokenStorage.clear();
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(GYMS_KEY);
+      localStorage.removeItem(CURRENT_GYM_KEY);
+    }
   },
 
   getStoredSession() {

@@ -63,63 +63,81 @@ export const membersService = {
   },
 };
 
+function normalizePhone(raw: string): string {
+  let phone = String(raw ?? '').trim().replace(/\s+/g, '').replace(/[-()]/g, '');
+  if (phone.startsWith('+98')) phone = '0' + phone.slice(3);
+  if (phone.startsWith('98') && phone.length === 12) phone = '0' + phone.slice(2);
+  if (/^9\d{9}$/.test(phone)) phone = '0' + phone;
+  return phone;
+}
+
 function sanitizePayload(payload: Partial<GymMemberInput>, partial = false): Record<string, unknown> {
   const body: Record<string, unknown> = {};
-  const set = (key: keyof GymMemberInput, transform?: (v: unknown) => unknown) => {
-    if (!partial || payload[key] !== undefined) {
-      const v = payload[key];
-      body[key as string] = transform ? transform(v) : v;
-    }
-  };
 
-  set('full_name', (v) => String(v ?? '').trim());
-  set('phone', (v) => String(v ?? '').trim().replace(/\s+/g, ''));
-  set('join_date', (v) => (v ? String(v) : undefined));
+  if (!partial || payload.full_name !== undefined) {
+    body.full_name = String(payload.full_name ?? '').trim();
+  }
+  if (!partial || payload.phone !== undefined) {
+    body.phone = normalizePhone(String(payload.phone ?? ''));
+  }
+  if (!partial || payload.join_date !== undefined) {
+    if (payload.join_date) body.join_date = String(payload.join_date);
+  }
 
-  if (!partial || payload.sport !== undefined) {
-    body.sport = payload.sport != null && payload.sport !== 0 ? payload.sport : null;
+  // Optional FKs — only include when set (omit null on create to avoid backend 400)
+  if (payload.sport != null && payload.sport !== 0) {
+    body.sport = payload.sport;
+  } else if (partial && payload.sport === null) {
+    body.sport = null;
   }
-  if (!partial || payload.coach !== undefined) {
-    body.coach = payload.coach != null && payload.coach !== 0 ? payload.coach : null;
+
+  if (payload.coach != null && payload.coach !== 0) {
+    body.coach = payload.coach;
+  } else if (partial && payload.coach === null) {
+    body.coach = null;
   }
-  if (!partial || payload.fitopia_user !== undefined) {
-    body.fitopia_user = payload.fitopia_user != null ? payload.fitopia_user : null;
+
+  if (payload.fitopia_user != null) {
+    body.fitopia_user = payload.fitopia_user;
   }
-  if (!partial || payload.source !== undefined) {
-    if (payload.source) body.source = payload.source;
-  }
+
+  if (payload.source) body.source = payload.source;
+  else if (!partial) body.source = 'manual';
+
   if (!partial || payload.sessions_total !== undefined) {
-    body.sessions_total = payload.sessions_total ?? null;
+    if (payload.sessions_total != null) body.sessions_total = Number(payload.sessions_total);
   }
   if (!partial || payload.sessions_remaining !== undefined) {
-    body.sessions_remaining = payload.sessions_remaining ?? null;
+    if (payload.sessions_remaining != null) body.sessions_remaining = Number(payload.sessions_remaining);
   }
   if (!partial || payload.sessions_used !== undefined) {
-    body.sessions_used = payload.sessions_used ?? null;
+    body.sessions_used = payload.sessions_used != null ? Number(payload.sessions_used) : 0;
+  } else if (!partial) {
+    body.sessions_used = 0;
   }
+
   if (!partial || payload.price_paid !== undefined) {
-    body.price_paid = payload.price_paid ?? null;
+    if (payload.price_paid != null) body.price_paid = Number(payload.price_paid);
   }
-  if (!partial || payload.photo !== undefined) {
-    if (payload.photo) body.photo = payload.photo;
+
+  if (typeof payload.photo === 'string' && payload.photo) {
+    body.photo = payload.photo;
   }
-  if (!partial || payload.membership_status !== undefined) {
-    if (payload.membership_status) body.membership_status = payload.membership_status;
-  }
-  if (!partial || payload.membership_type !== undefined) {
-    if (payload.membership_type) body.membership_type = payload.membership_type;
-  }
-  if (!partial || payload.membership_start !== undefined) {
-    body.membership_start = payload.membership_start || null;
-  }
-  if (!partial || payload.membership_end !== undefined) {
-    body.membership_end = payload.membership_end || null;
-  }
+
+  if (payload.membership_status) body.membership_status = payload.membership_status;
+  else if (!partial) body.membership_status = 'active';
+
+  if (payload.membership_type) body.membership_type = payload.membership_type;
+
+  if (payload.membership_start) body.membership_start = payload.membership_start;
+  if (payload.membership_end) body.membership_end = payload.membership_end;
+
   if (!partial || payload.notes !== undefined) {
-    body.notes = payload.notes ?? '';
+    body.notes = payload.notes != null ? String(payload.notes) : '';
   }
+
   if (!partial || payload.is_active !== undefined) {
-    if (payload.is_active !== undefined) body.is_active = payload.is_active;
+    body.is_active = payload.is_active !== false;
   }
 
   if (!partial) {
