@@ -112,17 +112,22 @@ export const authService = {
   },
 
   /**
-   * Client session is always cleared.
-   * Best-effort server logout while JWT is still attached; ignore 401/network errors.
+   * Always clear local session.
+   * Best-effort server logout; ignore 400/401 (token already invalid / body mismatch).
    */
   async logout(): Promise<void> {
     try {
-      const token = tokenStorage.getAccess();
-      if (token) {
-        await api.post('/accounts/logout/');
+      const access = tokenStorage.getAccess();
+      const refresh = tokenStorage.getRefresh();
+      if (access) {
+        const body = refresh ? { refresh } : {};
+        await api.post('/accounts/logout/', body, {
+          headers: { Authorization: `Bearer ${access}` },
+          validateStatus: (s) => (s >= 200 && s < 300) || s === 400 || s === 401,
+        });
       }
     } catch {
-      /* server may return 401 if token already expired — still clear local session */
+      /* ignore network / server errors — local session still clears */
     } finally {
       tokenStorage.clear();
       localStorage.removeItem(USER_KEY);
