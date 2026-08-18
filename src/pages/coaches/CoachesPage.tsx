@@ -13,12 +13,12 @@ import coachesService from '../../services/coaches/coachesService';
 import sportsService from '../../services/sports/sportsService';
 import type { GymCoach, GymCoachInput, Sport } from '../../types/api';
 
-const emptyForm: GymCoachInput = {
+const emptyForm = (): GymCoachInput => ({
   full_name: '',
   specialty: '',
   sports: [],
   image: null,
-};
+});
 
 function CoachAvatar({ name, image }: { name: string; image?: string | null }) {
   const initials = name
@@ -46,15 +46,17 @@ function CoachAvatar({ name, image }: { name: string; image?: string | null }) {
 function validateForm(form: GymCoachInput): Record<string, string> {
   const errors: Record<string, string> = {};
   if (!form.full_name.trim()) errors.full_name = 'نام و نام خانوادگی الزامی است.';
-  if (!form.specialty?.trim()) errors.specialty = 'تخصص الزامی است.';
+  if (form.specialty != null && form.specialty.length > 120) {
+    errors.specialty = 'تخصص نباید بیش از ۱۲۰ کاراکتر باشد.';
+  }
   return errors;
 }
 
-function DetailRow({ label, value, ltr }: { label: string; value: string; ltr?: boolean }) {
+function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-3 p-3 rounded-xl bg-surface-elevated border border-border">
       <span className="text-muted shrink-0">{label}</span>
-      <span className={`text-ink font-medium text-left ${ltr ? 'dir-ltr font-mono' : ''}`}>{value}</span>
+      <span className="text-ink font-medium text-left">{value}</span>
     </div>
   );
 }
@@ -67,15 +69,15 @@ export const CoachesPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [sportFilter, setSportFilter] = useState('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<GymCoach | null>(null);
-  const [form, setForm] = useState<GymCoachInput>(emptyForm);
+  const [form, setForm] = useState<GymCoachInput>(emptyForm());
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<GymCoach | null>(null);
   const [detail, setDetail] = useState<GymCoach | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  /** Existing image URL when editing (kept until user replaces/removes) */
   const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
 
   const sportNameById = useMemo(() => {
@@ -87,7 +89,7 @@ export const CoachesPage: React.FC = () => {
   const resolveSportNames = useCallback(
     (ids?: number[] | null) => {
       if (!ids || !ids.length) return '—';
-      return ids.map((id) => sportNameById.get(id) || `رشته ${id}`).join('، ');
+      return ids.map((id) => sportNameById.get(id) || '—').filter((n) => n !== '—').join('، ') || '—';
     },
     [sportNameById],
   );
@@ -104,7 +106,7 @@ export const CoachesPage: React.FC = () => {
       setItems(list);
       setSports(sp);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'دریافت اطلاعات مربیان با خطا مواجه شد');
+      setError(e instanceof Error ? e.message : 'خطا در دریافت مربیان');
     } finally {
       setLoading(false);
     }
@@ -115,48 +117,54 @@ export const CoachesPage: React.FC = () => {
   }, [hasGym, load]);
 
   const filtered = useMemo(() => {
+    let rows = items;
+    if (sportFilter !== 'all') {
+      const sid = Number(sportFilter);
+      rows = rows.filter((r) => (r.sports || []).includes(sid));
+    }
     const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(
-      (r) =>
-        r.full_name.toLowerCase().includes(q) ||
-        (r.specialty || '').toLowerCase().includes(q) ||
-        resolveSportNames(r.sports).toLowerCase().includes(q),
-    );
-  }, [items, search, resolveSportNames]);
+    if (q) {
+      rows = rows.filter(
+        (r) =>
+          r.full_name.toLowerCase().includes(q) ||
+          (r.specialty || '').toLowerCase().includes(q) ||
+          resolveSportNames(r.sports).toLowerCase().includes(q),
+      );
+    }
+    return rows;
+  }, [items, search, sportFilter, resolveSportNames]);
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ ...emptyForm, sports: [] });
-    setFormErrors({});
+    setForm(emptyForm());
     setExistingImageUrl(null);
+    setFormErrors({});
     setModalOpen(true);
   };
 
   const openEdit = async (c: GymCoach) => {
-    if (!gymId) return;
     setEditing(c);
     setFormErrors({});
     setForm({
       full_name: c.full_name,
       specialty: c.specialty || '',
-      sports: c.sports ? [...c.sports] : [],
+      sports: c.sports || [],
       image: null,
     });
     setExistingImageUrl(c.image || null);
     setModalOpen(true);
+    if (!gymId) return;
     try {
-      const full = await coachesService.get(gymId, c.id);
+      const fresh = await coachesService.get(gymId, c.id);
       setForm({
-        full_name: full.full_name,
-        specialty: full.specialty || '',
-        sports: full.sports ? [...full.sports] : [],
+        full_name: fresh.full_name,
+        specialty: fresh.specialty || '',
+        sports: fresh.sports || [],
         image: null,
       });
-      setExistingImageUrl(full.image || null);
-      setEditing(full);
+      setExistingImageUrl(fresh.image || null);
     } catch {
-      /* keep list row data */
+      /* keep list row */
     }
   };
 
@@ -167,18 +175,16 @@ export const CoachesPage: React.FC = () => {
     try {
       setDetail(await coachesService.get(gymId, c.id));
     } catch {
-      /* keep list row */
+      /* keep */
     } finally {
       setDetailLoading(false);
     }
   };
 
-  const toggleSport = (sportId: number) => {
+  const toggleSport = (id: number) => {
     setForm((prev) => {
       const current = prev.sports || [];
-      const next = current.includes(sportId)
-        ? current.filter((id) => id !== sportId)
-        : [...current, sportId];
+      const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
       return { ...prev, sports: next };
     });
   };
@@ -223,7 +229,7 @@ export const CoachesPage: React.FC = () => {
       setDeleting(null);
       await load();
     } catch (e: unknown) {
-      showToast(e instanceof Error ? e.message : 'خطا در حذف مربی', 'danger');
+      showToast(e instanceof Error ? e.message : 'عملیات با خطا مواجه شد', 'danger');
     }
   };
 
@@ -236,7 +242,7 @@ export const CoachesPage: React.FC = () => {
     {
       key: 'specialty',
       header: 'تخصص',
-      render: (r) => <span className="text-muted text-sm">{r.specialty || '—'}</span>,
+      render: (r) => <span className="text-ink text-sm">{r.specialty || '—'}</span>,
     },
     {
       key: 'sports',
@@ -245,149 +251,109 @@ export const CoachesPage: React.FC = () => {
         <span className="text-ink text-sm line-clamp-2">{resolveSportNames(r.sports)}</span>
       ),
     },
+    {
+      key: 'actions',
+      header: 'عملیات',
+      className: 'w-28',
+      render: (r) => (
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={() => openDetail(r)} className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-surface-hover" aria-label="مشاهده جزئیات مربی" title="مشاهده">
+            <Eye className="w-4 h-4" />
+          </button>
+          <button type="button" onClick={() => openEdit(r)} className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-primary-soft" aria-label="ویرایش مربی" title="ویرایش">
+            <Edit3 className="w-4 h-4" />
+          </button>
+          <button type="button" onClick={() => setDeleting(r)} className="p-1.5 rounded-lg text-muted hover:text-danger-text hover:bg-danger-soft" aria-label="حذف مربی" title="حذف">
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+    },
   ];
 
-  if (!hasGym) {
-    return (
-      <div className="space-y-6">
-        <Header title="مربیان" subtitle="مدیریت مربیان باشگاه" />
-        <NoGymSelected />
-      </div>
-    );
-  }
+  if (!hasGym) return <NoGymSelected />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Header
         title="مربیان"
-        subtitle="مدیریت مربیان باشگاه"
-        onQuickAction={openCreate}
-        quickActionLabel="افزودن مربی"
+        subtitle="مدیریت مربیان باشگاه، تخصص و رشته‌ها"
+        actions={
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={load} disabled={loading} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl border border-border text-secondary hover:bg-surface-hover">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              بروزرسانی
+            </button>
+            <button type="button" onClick={openCreate} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl bg-primary text-primary-fg font-bold">
+              <UserPlus className="w-4 h-4" />
+              مربی جدید
+            </button>
+          </div>
+        }
       />
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-end sm:justify-between">
+      <div className="flex flex-wrap gap-2 items-center">
         <input
+          type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="جستجوی نام، تخصص یا رشته..."
-          className="w-full max-w-md rounded-xl border border-border bg-input px-3 py-2.5 text-sm text-ink placeholder:text-disabled focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-          aria-label="جستجوی مربی"
+          placeholder="جستجو نام، تخصص یا رشته..."
+          className="flex-1 min-w-[180px] rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
         />
-        <button
-          type="button"
-          onClick={load}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-border text-muted text-sm hover:text-ink hover:bg-surface-hover shrink-0"
-        >
-          <RefreshCw className="w-4 h-4" />
-          به‌روزرسانی
-        </button>
+        <select value={sportFilter} onChange={(e) => setSportFilter(e.target.value)} className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink">
+          <option value="all">همه رشته‌ها</option>
+          {sports.map((s) => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
       </div>
 
-      {loading && <LoadingBlock />}
-      {error && (
-        <ErrorBlock
-          message={error || 'دریافت اطلاعات مربیان با خطا مواجه شد'}
-          onRetry={load}
-        />
-      )}
-      {!loading && !error && items.length === 0 && (
+      {error && <ErrorBlock message={error} onRetry={load} />}
+      {loading && !items.length ? (
+        <LoadingBlock />
+      ) : !error && filtered.length === 0 ? (
         <EmptyState
-          title="هنوز مربی‌ای ثبت نشده است"
-          description="اولین مربی باشگاه را اضافه کنید."
+          title="مربی‌ای یافت نشد"
+          description={items.length ? 'با فیلترهای فعلی نتیجه‌ای نیست.' : 'هنوز مربی‌ای ثبت نشده است.'}
           action={
-            <button
-              type="button"
-              onClick={openCreate}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-fg text-sm font-bold"
-            >
-              <UserPlus className="w-4 h-4" />
-              افزودن مربی
-            </button>
+            !items.length ? (
+              <button type="button" onClick={openCreate} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-xl bg-primary text-primary-fg font-bold">
+                <UserPlus className="w-4 h-4" />
+                افزودن اولین مربی
+              </button>
+            ) : undefined
           }
         />
-      )}
-      {!loading && !error && items.length > 0 && filtered.length === 0 && (
-        <EmptyState title="نتیجه‌ای یافت نشد" description="عبارت جستجو را تغییر دهید." />
-      )}
-      {!loading && !error && filtered.length > 0 && (
-        <DataTable
-          columns={columns}
-          data={filtered}
-          actions={(r) => (
-            <div className="flex items-center gap-0.5">
-              <button
-                type="button"
-                onClick={() => openDetail(r)}
-                className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-surface-hover"
-                title="مشاهده"
-                aria-label="مشاهده جزئیات مربی"
-              >
-                <Eye className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => openEdit(r)}
-                className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-surface-hover"
-                title="ویرایش"
-                aria-label="ویرایش مربی"
-              >
-                <Edit3 className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeleting(r)}
-                className="p-1.5 rounded-lg text-muted hover:text-danger-text hover:bg-surface-hover"
-                title="حذف"
-                aria-label="حذف مربی"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        />
+      ) : (
+        <DataTable columns={columns} data={filtered} rowKey={(r) => r.id} loading={loading} />
       )}
 
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => !saving && setModalOpen(false)}
-        title={editing ? 'ویرایش مربی' : 'افزودن مربی'}
-      >
-        <div className="space-y-4">
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'ویرایش مربی' : 'مربی جدید'}>
+        <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1">
+          <FormField label="نام و نام خانوادگی" required value={form.full_name} error={formErrors.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+          <FormField label="تخصص" value={form.specialty || ''} error={formErrors.specialty} placeholder="مثلاً بدنسازی، یوگا، شنا" onChange={(e) => setForm({ ...form, specialty: e.target.value })} />
+
           <ImageUpload
+            label="تصویر مربی"
             mode="avatar"
-            label="تصویر پروفایل"
-            value={existingImageUrl}
             file={form.image instanceof File ? form.image : null}
+            value={existingImageUrl}
             onChange={(file) => {
               setForm((prev) => ({ ...prev, image: file }));
               if (file) setExistingImageUrl(null);
             }}
-            onClearUrl={() => setExistingImageUrl(null)}
-          />
-
-          <FormField
-            label="نام و نام خانوادگی"
-            required
-            value={form.full_name}
-            error={formErrors.full_name}
-            onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-          />
-
-          <FormField
-            label="تخصص"
-            required
-            value={form.specialty || ''}
-            error={formErrors.specialty}
-            placeholder="مثلاً بدنسازی، یوگا، کراس‌فیت"
-            onChange={(e) => setForm({ ...form, specialty: e.target.value })}
+            onClearUrl={() => {
+              setForm((prev) => ({ ...prev, image: null }));
+              setExistingImageUrl(null);
+            }}
           />
 
           <div className="space-y-1.5">
             <label className="block text-xs font-semibold text-secondary">رشته‌های ورزشی</label>
             {sports.length === 0 ? (
-              <p className="text-[11px] text-muted">فهرست رشته‌ها در دسترس نیست.</p>
+              <p className="text-xs text-muted">کاتالوگ رشته‌ها در دسترس نیست.</p>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto p-2 rounded-xl border border-border bg-surface-elevated">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-40 overflow-y-auto p-1 rounded-xl border border-border bg-surface-elevated">
                 {sports.map((s) => {
                   const checked = (form.sports || []).includes(s.id);
                   return (
@@ -399,12 +365,7 @@ export const CoachesPage: React.FC = () => {
                           : 'text-ink hover:bg-surface-hover border border-transparent'
                       }`}
                     >
-                      <input
-                        type="checkbox"
-                        className="sr-only"
-                        checked={checked}
-                        onChange={() => toggleSport(s.id)}
-                      />
+                      <input type="checkbox" className="sr-only" checked={checked} onChange={() => toggleSport(s.id)} />
                       <span
                         className={`w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center ${
                           checked ? 'bg-primary border-primary' : 'border-border bg-input'
@@ -413,13 +374,7 @@ export const CoachesPage: React.FC = () => {
                       >
                         {checked && (
                           <svg className="w-2.5 h-2.5 text-primary-fg" viewBox="0 0 12 12" fill="none">
-                            <path
-                              d="M2 6l3 3 5-5"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
+                            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                         )}
                       </span>
@@ -432,21 +387,9 @@ export const CoachesPage: React.FC = () => {
             <p className="text-[11px] text-muted">می‌توانید چند رشته را انتخاب کنید.</p>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => setModalOpen(false)}
-              className="px-4 py-2 text-sm rounded-lg text-muted hover:bg-surface-hover"
-            >
-              انصراف
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={handleSave}
-              className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-fg font-bold disabled:opacity-50"
-            >
+          <div className="flex justify-end gap-2 pt-2 sticky bottom-0 bg-surface">
+            <button type="button" disabled={saving} onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm rounded-lg text-muted hover:bg-surface-hover">انصراف</button>
+            <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-fg font-bold disabled:opacity-50">
               {saving ? 'در حال ذخیره...' : 'ذخیره'}
             </button>
           </div>
@@ -457,22 +400,22 @@ export const CoachesPage: React.FC = () => {
         {detailLoading && <LoadingBlock />}
         {detail && !detailLoading && (
           <div className="space-y-3 text-sm">
-            <div className="flex justify-center mb-2">
-              <div className="w-20 h-20 rounded-2xl overflow-hidden bg-primary-soft border border-border flex items-center justify-center">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-elevated border border-border">
+              <div className="w-16 h-16 rounded-xl overflow-hidden bg-primary-soft border border-border shrink-0 flex items-center justify-center">
                 {detail.image ? (
                   <img src={detail.image} alt={detail.full_name} className="w-full h-full object-cover" />
                 ) : (
-                  <User className="w-8 h-8 text-primary" />
+                  <User className="w-6 h-6 text-primary" />
                 )}
               </div>
+              <div className="min-w-0">
+                <p className="font-bold text-ink truncate">{detail.full_name}</p>
+                <p className="text-muted text-xs mt-0.5">{detail.specialty || 'بدون تخصص'}</p>
+              </div>
             </div>
-            <DetailRow label="شناسه" value={String(detail.id)} ltr />
             <DetailRow label="نام" value={detail.full_name} />
             <DetailRow label="تخصص" value={detail.specialty || '—'} />
             <DetailRow label="رشته‌ها" value={resolveSportNames(detail.sports)} />
-            {detail.image && (
-              <DetailRow label="تصویر" value={detail.image} ltr />
-            )}
           </div>
         )}
       </Modal>
@@ -487,3 +430,5 @@ export const CoachesPage: React.FC = () => {
     </div>
   );
 };
+
+export default CoachesPage;
