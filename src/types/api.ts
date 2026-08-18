@@ -105,11 +105,9 @@ export interface GymCoachInput {
   full_name: string;
   specialty?: string;
   sports?: number[];
-  /** File for multipart upload, or existing image URL string */
   image?: File | string | null;
 }
 
-/** OpenAPI: StaffAccess */
 export interface StaffEmployee {
   id: number;
   user: number;
@@ -121,7 +119,6 @@ export interface StaffEmployee {
   start_date?: string | null;
   end_date?: string | null;
   employee_number?: string;
-  /** Backend may return CSV string or array */
   permission_codes?: string[] | string;
   created_at?: string;
 }
@@ -134,11 +131,8 @@ export interface StaffEmployeeInput {
   employee_number?: string;
 }
 
-/** OpenAPI: DayOfWeekEnum — 0=شنبه … 6=جمعه */
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
-/** OpenAPI: SkillLevelEnum */
 export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'all';
-/** OpenAPI: GenderRestrictionEnum */
 export type GenderRestriction = 'all' | 'male' | 'female';
 
 export interface OfferingSchedule {
@@ -208,7 +202,13 @@ export interface GymPriceInput {
   quarterly_price?: number | null; yearly_price: number;
 }
 export interface SuggestNewSportInput { name: string; category_id: number; }
-export interface SportCategory { id: number; name: string; }
+/** OpenAPI SportCategory uses `title` (not name) */
+export interface SportCategory {
+  id: number;
+  title?: string;
+  name: string;
+  slug?: string;
+}
 export interface Sport { id: number; name: string; category?: number | null; category_name?: string; }
 
 export interface FinanceTransaction {
