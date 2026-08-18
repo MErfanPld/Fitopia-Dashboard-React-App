@@ -109,14 +109,29 @@ export interface GymCoachInput {
   image?: File | string | null;
 }
 
+/** OpenAPI: StaffAccess */
 export interface StaffEmployee {
-  id: number; user: number; username?: string; user_phone?: string; gym?: number;
-  role: StaffRole | string; is_active: boolean; start_date?: string | null; end_date?: string | null;
-  employee_number?: string; permission_codes?: string[] | string; created_at?: string;
+  id: number;
+  user: number;
+  username?: string;
+  user_phone?: string;
+  gym?: number;
+  role: StaffRole | string;
+  is_active: boolean;
+  start_date?: string | null;
+  end_date?: string | null;
+  employee_number?: string;
+  /** Backend may return CSV string or array */
+  permission_codes?: string[] | string;
+  created_at?: string;
 }
 export interface StaffEmployeeInput {
-  user?: number; role: StaffRole | string; is_active?: boolean;
-  start_date?: string | null; end_date?: string | null; employee_number?: string;
+  user: number;
+  role: StaffRole | string;
+  is_active?: boolean;
+  start_date?: string | null;
+  end_date?: string | null;
+  employee_number?: string;
 }
 
 /** OpenAPI: DayOfWeekEnum — 0=شنبه … 6=جمعه */
