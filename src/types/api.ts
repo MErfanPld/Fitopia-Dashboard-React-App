@@ -94,8 +94,20 @@ export interface GymMemberInput {
   is_active?: boolean;
 }
 
-export interface GymCoach { id: number; full_name: string; image?: string | null; specialty?: string; sports?: number[]; }
-export interface GymCoachInput { full_name: string; specialty?: string; sports?: number[]; image?: File | null; }
+export interface GymCoach {
+  id: number;
+  full_name: string;
+  image?: string | null;
+  specialty?: string | null;
+  sports?: number[];
+}
+export interface GymCoachInput {
+  full_name: string;
+  specialty?: string;
+  sports?: number[];
+  /** File for multipart upload, or existing image URL string */
+  image?: File | string | null;
+}
 
 export interface StaffEmployee {
   id: number; user: number; username?: string; user_phone?: string; gym?: number;
