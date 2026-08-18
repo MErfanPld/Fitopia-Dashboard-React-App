@@ -45,8 +45,9 @@ function parsePermissionCodes(raw?: string[] | string | null): PermissionCode[] 
   return parts.filter((c): c is PermissionCode => ALL_PERMISSIONS.includes(c as PermissionCode));
 }
 
-function displayName(e: StaffEmployee): string {
-  return e.username || e.user_phone || `کاربر ${e.user}`;
+function displayName(e?: StaffEmployee | null): string {
+  if (!e) return '—';
+  return e.username || e.user_phone || (e.user != null ? `کاربر ${e.user}` : 'کارمند');
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -92,7 +93,8 @@ export const EmployeesPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      setItems(await employeesService.list(gymId));
+      const list = await employeesService.list(gymId);
+      setItems((list || []).filter((x): x is StaffEmployee => !!x && typeof x === 'object' && x.id != null));
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'خطا در دریافت کارکنان');
     } finally {
@@ -105,7 +107,7 @@ export const EmployeesPage: React.FC = () => {
   }, [hasGym, load, can]);
 
   const filtered = useMemo(() => {
-    let rows = items;
+    let rows = items.filter(Boolean);
     if (roleFilter !== 'all') rows = rows.filter((r) => r.role === roleFilter);
     if (activeFilter === 'active') rows = rows.filter((r) => r.is_active !== false);
     if (activeFilter === 'inactive') rows = rows.filter((r) => r.is_active === false);
@@ -135,8 +137,9 @@ export const EmployeesPage: React.FC = () => {
   };
 
   const openEdit = async (r: StaffEmployee) => {
+    if (!r) return;
     setEditing(r);
-    setUserId(String(r.user));
+    setUserId(String(r.user ?? ''));
     setRole(String(r.role || 'staff'));
     setEmployeeNumber(r.employee_number || '');
     setIsActive(r.is_active !== false);
@@ -147,7 +150,8 @@ export const EmployeesPage: React.FC = () => {
     if (!gymId) return;
     try {
       const fresh = await employeesService.get(gymId, r.id);
-      setUserId(String(fresh.user));
+      if (!fresh) return;
+      setUserId(String(fresh.user ?? ''));
       setRole(String(fresh.role || 'staff'));
       setEmployeeNumber(fresh.employee_number || '');
       setIsActive(fresh.is_active !== false);
@@ -159,6 +163,7 @@ export const EmployeesPage: React.FC = () => {
   };
 
   const openDetail = async (r: StaffEmployee) => {
+    if (!r) return;
     setDetail(r);
     if (!gymId) return;
     setDetailLoading(true);
@@ -172,6 +177,7 @@ export const EmployeesPage: React.FC = () => {
   };
 
   const openPermissions = (r: StaffEmployee) => {
+    if (!r) return;
     const existing = parsePermissionCodes(r.permission_codes);
     if (existing.length) setCodes(existing);
     else setCodes([...(ROLE_DEFAULTS[r.role as StaffRole] || [])]);
@@ -269,7 +275,7 @@ export const EmployeesPage: React.FC = () => {
           </div>
           <div className="min-w-0">
             <p className="font-medium text-ink truncate">{displayName(r)}</p>
-            {r.employee_number ? <p className="text-[11px] text-muted">کد پرسنلی: {r.employee_number}</p> : null}
+            {r?.employee_number ? <p className="text-[11px] text-muted">کد پرسنلی: {r.employee_number}</p> : null}
           </div>
         </div>
       ),
@@ -277,14 +283,14 @@ export const EmployeesPage: React.FC = () => {
     {
       key: 'user_phone',
       header: 'موبایل',
-      render: (r) => <span className="text-muted text-sm dir-ltr font-mono">{r.user_phone || '—'}</span>,
+      render: (r) => <span className="text-muted text-sm dir-ltr font-mono">{r?.user_phone || '—'}</span>,
     },
     {
       key: 'role',
       header: 'نقش',
       render: (r) => (
         <span className="inline-flex px-2 py-0.5 rounded-lg text-[11px] font-medium bg-surface-elevated border border-border text-secondary">
-          {roleLabel(r.role)}
+          {roleLabel(r?.role)}
         </span>
       ),
     },
@@ -293,9 +299,9 @@ export const EmployeesPage: React.FC = () => {
       header: 'وضعیت',
       render: (r) => (
         <span className={`inline-flex px-2 py-0.5 rounded-lg text-[11px] font-medium border ${
-          r.is_active !== false ? 'bg-success-soft text-success-text border-success/20' : 'bg-danger-soft text-danger-text border-danger/20'
+          r?.is_active !== false ? 'bg-success-soft text-success-text border-success/20' : 'bg-danger-soft text-danger-text border-danger/20'
         }`}>
-          {r.is_active !== false ? 'فعال' : 'غیرفعال'}
+          {r?.is_active !== false ? 'فعال' : 'غیرفعال'}
         </span>
       ),
     },
@@ -303,7 +309,7 @@ export const EmployeesPage: React.FC = () => {
       key: 'start_date',
       header: 'شروع همکاری',
       render: (r) => (
-        <span className="text-sm text-muted tabular-nums">{r.start_date ? formatJalaliNumeric(r.start_date) : '—'}</span>
+        <span className="text-sm text-muted tabular-nums">{r?.start_date ? formatJalaliNumeric(r.start_date) : '—'}</span>
       ),
     },
     {
@@ -454,37 +460,56 @@ export const EmployeesPage: React.FC = () => {
       </Modal>
 
       <Modal isOpen={!!permTarget} onClose={() => setPermTarget(null)} title="تنظیم مجوزها">
-        <div className="space-y-3">
-          <p className="text-xs text-muted">
-            مجوزهای «{displayName(permTarget!)}» — نقش: {roleLabel(permTarget?.role)}
-          </p>
-          <div className="flex gap-2">
-            <button type="button" className="text-xs text-primary hover:underline" onClick={() => setCodes([...(ROLE_DEFAULTS[permTarget!.role as StaffRole] || [])])}>
-              اعمال پیش‌فرض نقش
-            </button>
-            <button type="button" className="text-xs text-muted hover:underline" onClick={() => setCodes([...ALL_PERMISSIONS])}>انتخاب همه</button>
-            <button type="button" className="text-xs text-muted hover:underline" onClick={() => setCodes([])}>حذف همه</button>
+        {permTarget && (
+          <div className="space-y-3">
+            <p className="text-xs text-muted">
+              مجوزهای «{displayName(permTarget)}» — نقش: {roleLabel(permTarget.role)}
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="text-xs text-primary hover:underline"
+                onClick={() => setCodes([...(ROLE_DEFAULTS[permTarget.role as StaffRole] || [])])}
+              >
+                اعمال پیش‌فرض نقش
+              </button>
+              <button type="button" className="text-xs text-muted hover:underline" onClick={() => setCodes([...ALL_PERMISSIONS])}>
+                انتخاب همه
+              </button>
+              <button type="button" className="text-xs text-muted hover:underline" onClick={() => setCodes([])}>
+                حذف همه
+              </button>
+            </div>
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {ALL_PERMISSIONS.map((code) => (
+                <label key={code} className="flex items-center gap-2 text-sm text-ink p-2 rounded-lg hover:bg-surface-hover cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={codes.includes(code)}
+                    onChange={(e) =>
+                      setCodes((prev) => (e.target.checked ? [...prev, code] : prev.filter((c) => c !== code)))
+                    }
+                    className="accent-primary"
+                  />
+                  {PERMISSION_LABELS[code] || code}
+                </label>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setPermTarget(null)} className="px-4 py-2 text-sm text-muted">
+                انصراف
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleSavePermissions}
+                className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-fg font-bold disabled:opacity-50"
+              >
+                {saving ? 'در حال ذخیره...' : 'ذخیره مجوزها'}
+              </button>
+            </div>
           </div>
-          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-            {ALL_PERMISSIONS.map((code) => (
-              <label key={code} className="flex items-center gap-2 text-sm text-ink p-2 rounded-lg hover:bg-surface-hover cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={codes.includes(code)}
-                  onChange={(e) => setCodes((prev) => (e.target.checked ? [...prev, code] : prev.filter((c) => c !== code)))}
-                  className="accent-primary"
-                />
-                {PERMISSION_LABELS[code] || code}
-              </label>
-            ))}
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={() => setPermTarget(null)} className="px-4 py-2 text-sm text-muted">انصراف</button>
-            <button type="button" disabled={saving} onClick={handleSavePermissions} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-fg font-bold disabled:opacity-50">
-              {saving ? 'در حال ذخیره...' : 'ذخیره مجوزها'}
-            </button>
-          </div>
-        </div>
+        )}
       </Modal>
 
       <ConfirmDeleteModal
