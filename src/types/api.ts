@@ -36,40 +36,62 @@ export interface LoginResponse {
   access?: string; refresh?: string; user?: AuthUser; gyms?: GymAccess[];
 }
 
+export type MembershipStatus = 'active' | 'expired' | 'suspended' | 'inactive';
+export type MembershipType = 'session_pack' | 'monthly' | 'course' | 'drop_in' | string;
+export type MemberSource = 'token' | 'manual' | string;
+
 export interface GymMember {
   id: number;
+  gym?: number;
+  fitopia_user?: number | null;
   full_name: string;
   phone: string;
   sport: number | null;
-  sport_name: string;
-  source: string;
-  added_by: number | null;
-  added_by_name: string | null;
-  sessions_total: number | null;
-  sessions_remaining: number | null;
-  price_paid: number | null;
-  join_date: string;
-  is_fitopia_user: boolean | string;
-  created_at: string;
-  updated_at: string;
+  sport_name?: string;
   coach?: number | null;
-  membership_status?: string;
-  membership_type?: string;
-  notes?: string;
+  coach_name?: string | null;
+  source?: MemberSource;
+  added_by?: number | null;
+  added_by_name?: string | null;
+  sessions_total?: number | null;
+  sessions_remaining?: number | null;
+  sessions_used?: number | null;
+  price_paid?: number | null;
+  join_date: string;
+  photo?: string | null;
+  membership_status?: MembershipStatus | string;
+  membership_type?: MembershipType;
+  membership_start?: string | null;
+  membership_end?: string | null;
+  notes?: string | null;
   is_active?: boolean;
   last_visit_at?: string | null;
-  sessions_remaining_calc?: number | null;
+  sessions_remaining_calc?: string | number | null;
+  is_fitopia_user?: boolean | string;
+  created_at?: string;
+  updated_at?: string;
 }
 export type GymCustomer = GymMember;
 
 export interface GymMemberInput {
+  fitopia_user?: number | null;
   full_name: string;
   phone: string;
-  sport: number | null;
-  sessions_total: number | null;
-  sessions_remaining: number | null;
-  price_paid: number | null;
+  sport?: number | null;
+  coach?: number | null;
+  source?: MemberSource;
+  sessions_total?: number | null;
+  sessions_remaining?: number | null;
+  sessions_used?: number | null;
+  price_paid?: number | null;
   join_date: string;
+  photo?: string | null;
+  membership_status?: MembershipStatus | string;
+  membership_type?: MembershipType;
+  membership_start?: string | null;
+  membership_end?: string | null;
+  notes?: string | null;
+  is_active?: boolean;
 }
 
 export interface GymCoach { id: number; full_name: string; image?: string | null; specialty?: string; sports?: number[]; }
@@ -186,7 +208,8 @@ export interface SingleSession {
   purchased_at?: string; used_at?: string | null; expires_at?: string | null;
 }
 export interface AuditLog {
-  id: number; user?: number | null; action: string; object_type?: string; object_id?: string;
+  id: number; user?: number | null; user_name?: string | null; action: string;
+  object_type?: string; object_id?: string; object_repr?: string | null;
   metadata?: Record<string, unknown>; created_at?: string;
 }
 export interface GymChangeRequest {
