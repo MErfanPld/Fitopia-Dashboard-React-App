@@ -3,7 +3,6 @@ import type {
   AttendanceStats,
   GymVisit,
   AttendanceCheckInInput,
-  AttendanceCheckOutInput,
 } from '../../types/api';
 
 function normalizeStats(raw: unknown): AttendanceStats {
@@ -25,49 +24,38 @@ function normalizeStats(raw: unknown): AttendanceStats {
   };
 }
 
+/**
+ * Backend CheckInSerializer (Fitopia-API):
+ *   customer_id: int (required)
+ *   method: qr|token|manual|membership (default manual)
+ *   sport_id: int optional
+ */
 function sanitizeCheckIn(payload: AttendanceCheckInInput): Record<string, unknown> {
-  const body: Record<string, unknown> = {};
-
-  const customer =
+  const customerId =
     payload.customer_id != null && Number(payload.customer_id) > 0
       ? Number(payload.customer_id)
       : payload.customer != null && Number(payload.customer) > 0
         ? Number(payload.customer)
         : null;
 
-  if (customer) {
-    body.customer = customer;
-    body.customer_id = customer;
+  if (!customerId) {
+    throw new Error('انتخاب عضو الزامی است');
   }
 
-  const sport =
+  const body: Record<string, unknown> = {
+    customer_id: customerId,
+    method: payload.method || 'manual',
+  };
+
+  const sportId =
     payload.sport_id != null && Number(payload.sport_id) > 0
       ? Number(payload.sport_id)
       : payload.sport != null && Number(payload.sport) > 0
         ? Number(payload.sport)
         : null;
-  if (sport) {
-    body.sport = sport;
-    body.sport_id = sport;
-  }
 
-  body.method = payload.method || 'manual';
-  if (payload.source) body.source = payload.source;
-
-  if (payload.price != null && payload.price !== ('' as unknown)) {
-    body.price = Number(payload.price);
-  }
-
-  if (payload.guest_name?.trim()) {
-    body.guest_name = payload.guest_name.trim();
-    body.source = payload.source || 'direct';
-  }
-  if (payload.guest_phone?.trim()) {
-    body.guest_phone = payload.guest_phone.trim();
-  }
-
-  if (!customer && !payload.guest_name?.trim()) {
-    throw new Error('عضو یا نام مهمان را وارد کنید');
+  if (sportId) {
+    body.sport_id = sportId;
   }
 
   return body;
@@ -107,14 +95,12 @@ export const attendanceService = {
     }
   },
 
+  /** Backend CheckOutSerializer: { visit_id: int } */
   async checkOut(gymId: number, visitId: number): Promise<GymVisit | unknown> {
     try {
-      const body: AttendanceCheckOutInput = {
+      const { data } = await api.post(`/gym-panel/gyms/${gymId}/attendance/check-out/`, {
         visit_id: visitId,
-        visit: visitId,
-        id: visitId,
-      };
-      const { data } = await api.post(`/gym-panel/gyms/${gymId}/attendance/check-out/`, body);
+      });
       return data;
     } catch (e) {
       throw new Error(getErrorMessage(e, 'خطا در ثبت خروج'));
