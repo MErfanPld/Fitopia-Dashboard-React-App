@@ -1,15 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Bell, Ticket, BookOpen, AlertCircle } from 'lucide-react';
+import { Bell, Ticket, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import ticketsService from '../../services/tickets/ticketsService';
-import coursesService from '../../services/courses/coursesService';
-import type { GymChangeRequest, Course } from '../../types/api';
+import type { GymChangeRequest } from '../../types/api';
 import { formatJalaliDateTime } from '../../utils/jalaliUtils';
 
 type NotifItem = {
   id: string;
-  kind: 'ticket' | 'course';
   title: string;
   subtitle?: string;
   href: string;
@@ -31,8 +29,11 @@ const STATUS_FA: Record<string, string> = {
   waiting: 'در انتظار',
   in_review: 'در حال بررسی',
   submitted: 'ارسال‌شده',
-  draft: 'پیش‌نویس',
-  full: 'تکمیل ظرفیت',
+};
+
+const TYPE_FA: Record<string, string> = {
+  new_sport: 'پیشنهاد رشته',
+  field_edit: 'درخواست ویرایش',
 };
 
 export const NotificationBell: React.FC = () => {
@@ -50,51 +51,18 @@ export const NotificationBell: React.FC = () => {
     }
     setLoading(true);
     try {
-      const [tickets, courses] = await Promise.all([
-        ticketsService.list(gymId).catch(() => [] as GymChangeRequest[]),
-        coursesService.list(gymId).catch(() => [] as Course[]),
-      ]);
-
+      const tickets = await ticketsService.list(gymId).catch(() => [] as GymChangeRequest[]);
       const notifs: NotifItem[] = [];
 
       for (const t of tickets || []) {
         if (!isPendingTicket(t)) continue;
-        const typeLabel =
-          t.request_type === 'new_sport'
-            ? 'پیشنهاد رشته'
-            : t.request_type === 'field_edit'
-              ? 'درخواست ویرایش'
-              : t.request_type || 'تیکت';
         notifs.push({
           id: `ticket-${t.id}`,
-          kind: 'ticket',
-          title: typeLabel,
+          title: TYPE_FA[String(t.request_type)] || t.request_type || 'تیکت',
           subtitle: STATUS_FA[String(t.status).toLowerCase()] || String(t.status || 'در انتظار'),
           href: '/tickets',
           created_at: t.created_at,
         });
-      }
-
-      for (const c of courses || []) {
-        if (c.status === 'draft') {
-          notifs.push({
-            id: `course-draft-${c.id}`,
-            kind: 'course',
-            title: c.title || 'دوره',
-            subtitle: 'پیش‌نویس — منتظر انتشار',
-            href: '/courses',
-            created_at: c.created_at || c.updated_at,
-          });
-        } else if (c.status === 'full') {
-          notifs.push({
-            id: `course-full-${c.id}`,
-            kind: 'course',
-            title: c.title || 'دوره',
-            subtitle: 'ظرفیت تکمیل شده',
-            href: '/courses',
-            created_at: c.updated_at || c.created_at,
-          });
-        }
       }
 
       notifs.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
@@ -167,11 +135,7 @@ export const NotificationBell: React.FC = () => {
                   }}
                 >
                   <div className="w-9 h-9 rounded-xl bg-primary-soft flex items-center justify-center shrink-0 mt-0.5">
-                    {n.kind === 'ticket' ? (
-                      <Ticket className="w-4 h-4 text-primary" />
-                    ) : (
-                      <BookOpen className="w-4 h-4 text-primary" />
-                    )}
+                    <Ticket className="w-4 h-4 text-primary" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-ink truncate">{n.title}</p>
@@ -184,26 +148,16 @@ export const NotificationBell: React.FC = () => {
               ))
             )}
           </div>
-          <div className="px-3 py-2 border-t border-border bg-header/50 flex gap-2">
+          <div className="px-3 py-2 border-t border-border bg-header/50">
             <button
               type="button"
-              className="flex-1 text-xs py-2 rounded-lg text-primary hover:bg-primary-soft font-medium"
+              className="w-full text-xs py-2 rounded-lg text-primary hover:bg-primary-soft font-medium"
               onClick={() => {
                 setOpen(false);
                 navigate('/tickets');
               }}
             >
-              تیکت‌ها
-            </button>
-            <button
-              type="button"
-              className="flex-1 text-xs py-2 rounded-lg text-muted hover:bg-surface-hover"
-              onClick={() => {
-                setOpen(false);
-                navigate('/courses');
-              }}
-            >
-              دوره‌ها
+              مشاهده همه تیکت‌ها
             </button>
           </div>
         </div>
