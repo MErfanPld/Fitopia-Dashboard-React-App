@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { LogIn, LogOut, RefreshCw, ClipboardCheck, UserCheck } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { LogIn, LogOut, RefreshCw, Users, UserCheck, CalendarDays, Activity } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { DataTable, Column } from '../../components/common/DataTable';
 import { Modal } from '../../components/common/Modal';
@@ -10,99 +10,275 @@ import { useGymScoped } from '../../hooks/useGymScoped';
 import { useUI } from '../../context/UIContext';
 import attendanceService from '../../services/attendance/attendanceService';
 import membersService from '../../services/members/membersService';
-import type { AttendanceStats, GymMember, GymVisit } from '../../types/api';
+import sportsService from '../../services/sports/sportsService';
+import type { AttendanceStats, GymMember, GymVisit, Sport } from '../../types/api';
+import { formatJalaliDateTime } from '../../utils/jalaliUtils';
+
+const METHOD_LABELS: Record<string, string> = {
+  qr: 'QR', token: 'توکن', manual: 'دستی', membership: 'عضویت',
+};
+const SOURCE_LABELS: Record<string, string> = {
+  token: 'توکن فیتوپیا', direct: 'ثبت مستقیم', qr: 'QR', manual: 'دستی',
+  membership: 'عضویت', single_session: 'جلسه تکی',
+};
+function methodLabel(m?: string | null) { return m ? METHOD_LABELS[m] || m : '—'; }
+function sourceLabel(s?: string | null) { return s ? SOURCE_LABELS[s] || s : '—'; }
+function formatMoney(n?: number | null) {
+  if (n == null || Number.isNaN(Number(n))) return '—';
+  return `${Number(n).toLocaleString('fa-IR')} تومان`;
+}
+function visitPersonName(v: GymVisit): string {
+  if (v.customer_name) return v.customer_name;
+  if (v.guest_name) return v.guest_name;
+  return '—';
+}
 
 export const AttendancePage: React.FC = () => {
   const { gymId, hasGym, can } = useGymScoped('attendance.view');
   const { showToast } = useUI();
+  const canCreate = can('attendance.create');
+
   const [visits, setVisits] = useState<GymVisit[]>([]);
   const [stats, setStats] = useState<AttendanceStats | null>(null);
   const [members, setMembers] = useState<GymMember[]>([]);
+  const [sports, setSports] = useState<Sport[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [openFilter, setOpenFilter] = useState<'all' | 'open' | 'closed'>('all');
+
   const [checkInOpen, setCheckInOpen] = useState(false);
+  const [mode, setMode] = useState<'member' | 'guest'>('member');
   const [customerId, setCustomerId] = useState('');
+  const [sportId, setSportId] = useState('');
+  const [guestName, setGuestName] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
+  const [price, setPrice] = useState('');
   const [busy, setBusy] = useState(false);
+  const [checkingOutId, setCheckingOutId] = useState<number | null>(null);
+
+  const sportNameById = useMemo(() => {
+    const m = new Map<number, string>();
+    sports.forEach((s) => m.set(s.id, s.name));
+    return m;
+  }, [sports]);
 
   const load = useCallback(async () => {
     if (!gymId) return;
     setLoading(true); setError(null);
     try {
-      const [v, s] = await Promise.all([attendanceService.list(gymId), attendanceService.stats(gymId)]);
-      setVisits(v); setStats(s);
-    } catch (e: unknown) { setError(e instanceof Error ? e.message : 'دریافت اطلاعات با خطا مواجه شد.'); }
-    finally { setLoading(false); }
+      const [v, s, sp] = await Promise.all([
+        attendanceService.list(gymId),
+        attendanceService.stats(gymId).catch(() => null),
+        sportsService.listSports().catch(() => [] as Sport[]),
+      ]);
+      setVisits((v || []).filter((x) => x && x.id != null));
+      setStats(s);
+      setSports(sp || []);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'خطا در دریافت حضور و غیاب');
+    } finally {
+      setLoading(false);
+    }
   }, [gymId]);
 
-  useEffect(() => { if (hasGym && can('attendance.view')) load(); }, [hasGym, load, can]);
+  useEffect(() => {
+    if (hasGym && can('attendance.view')) load();
+  }, [hasGym, load, can]);
+
+  const filtered = useMemo(() => {
+    let rows = visits;
+    if (openFilter === 'open') rows = rows.filter((r) => r.is_open === true);
+    if (openFilter === 'closed') rows = rows.filter((r) => r.is_open === false);
+    const q = search.trim().toLowerCase();
+    if (q) {
+      rows = rows.filter((r) => {
+        const name = visitPersonName(r).toLowerCase();
+        const phone = String(r.guest_phone || '').toLowerCase();
+        const method = methodLabel(r.method).toLowerCase();
+        return name.includes(q) || phone.includes(q) || method.includes(q);
+      });
+    }
+    return rows;
+  }, [visits, search, openFilter]);
 
   const openCheckIn = async () => {
+    setMode('member'); setCustomerId(''); setSportId(''); setGuestName(''); setGuestPhone(''); setPrice('');
+    setCheckInOpen(true);
     if (!gymId) return;
-    try { setMembers(await membersService.list(gymId)); } catch { setMembers([]); }
-    setCustomerId(''); setCheckInOpen(true);
+    try {
+      const [m, sp] = await Promise.all([
+        membersService.list(gymId),
+        sportsService.listSports().catch(() => [] as Sport[]),
+      ]);
+      setMembers(m || []);
+      setSports(sp || []);
+    } catch { setMembers([]); }
   };
 
   const doCheckIn = async () => {
-    if (!gymId || !customerId) return;
+    if (!gymId) return;
+    if (mode === 'member' && !customerId) { showToast('عضو را انتخاب کنید', 'warning'); return; }
+    if (mode === 'guest' && !guestName.trim()) { showToast('نام مهمان الزامی است', 'warning'); return; }
     setBusy(true);
     try {
-      await attendanceService.checkIn(gymId, { customer_id: Number(customerId), method: 'manual' });
-      showToast('ورود ثبت شد', 'success'); setCheckInOpen(false); load();
-    } catch (e: unknown) { showToast(e instanceof Error ? e.message : 'خطا', 'danger'); }
-    finally { setBusy(false); }
+      await attendanceService.checkIn(gymId, {
+        customer_id: mode === 'member' ? Number(customerId) : null,
+        sport_id: sportId ? Number(sportId) : null,
+        method: 'manual',
+        source: mode === 'guest' ? 'direct' : 'manual',
+        guest_name: mode === 'guest' ? guestName.trim() : undefined,
+        guest_phone: mode === 'guest' ? guestPhone.trim() || undefined : undefined,
+        price: price !== '' ? Number(price) : null,
+      });
+      showToast('ورود با موفقیت ثبت شد', 'success');
+      setCheckInOpen(false);
+      await load();
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'عملیات با خطا مواجه شد', 'danger');
+    } finally { setBusy(false); }
   };
 
-  const doCheckOut = async (visitId: number) => {
+  const doCheckOut = async (visit: GymVisit) => {
     if (!gymId) return;
-    try { await attendanceService.checkOut(gymId, visitId); showToast('خروج ثبت شد', 'success'); load(); }
-    catch (e: unknown) { showToast(e instanceof Error ? e.message : 'خطا', 'danger'); }
+    setCheckingOutId(visit.id);
+    try {
+      await attendanceService.checkOut(gymId, visit.id);
+      showToast('خروج با موفقیت ثبت شد', 'success');
+      await load();
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'عملیات با خطا مواجه شد', 'danger');
+    } finally { setCheckingOutId(null); }
   };
 
   const columns: Column<GymVisit>[] = [
-    { key: 'customer_name', header: 'عضو', render: (r) => <span className="text-ink">{r.customer_name || r.guest_name || '—'}</span> },
-    { key: 'check_in_at', header: 'ورود', render: (r) => <span className="text-muted text-xs">{r.check_in_at ? new Date(r.check_in_at).toLocaleString('fa-IR') : '—'}</span> },
-    { key: 'check_out_at', header: 'خروج', render: (r) => <span className="text-muted text-xs">{r.check_out_at ? new Date(r.check_out_at).toLocaleString('fa-IR') : '—'}</span> },
-    { key: 'is_open', header: 'وضعیت', render: (r) => r.is_open ? <span className="text-success-text text-xs">حاضر</span> : <span className="text-muted text-xs">خروج</span> },
-    { key: 'method', header: 'روش', render: (r) => <span className="text-muted text-xs">{r.method || '—'}</span> },
+    {
+      key: 'person', header: 'فرد',
+      render: (r) => (
+        <div className="min-w-0">
+          <p className="font-medium text-ink truncate">{visitPersonName(r)}</p>
+          {r.guest_phone ? <p className="text-[11px] text-muted tabular-nums">{r.guest_phone}</p>
+            : r.customer != null ? <p className="text-[11px] text-muted">عضو باشگاه</p> : null}
+        </div>
+      ),
+    },
+    {
+      key: 'sport', header: 'رشته',
+      render: (r) => <span className="text-sm text-muted">{r.sport != null ? sportNameById.get(r.sport) || '—' : '—'}</span>,
+    },
+    {
+      key: 'check_in_at', header: 'ورود',
+      render: (r) => <span className="text-xs text-muted tabular-nums">{r.check_in_at ? formatJalaliDateTime(r.check_in_at) : '—'}</span>,
+    },
+    {
+      key: 'check_out_at', header: 'خروج',
+      render: (r) => <span className="text-xs text-muted tabular-nums">{r.check_out_at ? formatJalaliDateTime(r.check_out_at) : '—'}</span>,
+    },
+    {
+      key: 'method', header: 'روش',
+      render: (r) => <span className="text-xs text-secondary">{methodLabel(r.method)}{r.source ? ` · ${sourceLabel(r.source)}` : ''}</span>,
+    },
+    {
+      key: 'price', header: 'مبلغ',
+      render: (r) => <span className="text-sm tabular-nums text-muted">{formatMoney(r.price)}</span>,
+    },
+    {
+      key: 'is_open', header: 'وضعیت',
+      render: (r) => (
+        <span className={`inline-flex px-2 py-0.5 rounded-lg text-[11px] font-medium border ${
+          r.is_open ? 'bg-success-soft text-success-text border-success/20' : 'bg-surface-elevated text-muted border-border'
+        }`}>{r.is_open ? 'داخل باشگاه' : 'خارج‌شده'}</span>
+      ),
+    },
+    {
+      key: 'actions', header: 'عملیات', className: 'w-28',
+      render: (r) =>
+        r.is_open && canCreate ? (
+          <button type="button" disabled={checkingOutId === r.id} onClick={() => doCheckOut(r)}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg border border-border text-secondary hover:bg-surface-hover disabled:opacity-50" aria-label="ثبت خروج">
+            <LogOut className="w-3.5 h-3.5" />{checkingOutId === r.id ? '...' : 'خروج'}
+          </button>
+        ) : <span className="text-xs text-muted">—</span>,
+    },
   ];
 
-  if (!hasGym) return <div className="space-y-6"><Header title="حضور و غیاب" /><NoGymSelected /></div>;
-  if (!can('attendance.view')) return <div className="space-y-6"><Header title="حضور و غیاب" /><EmptyState title="دسترسی ندارید" /></div>;
+  if (!hasGym) return <NoGymSelected />;
+  if (!can('attendance.view')) {
+    return <div className="space-y-4"><Header title="حضور و غیاب" /><ErrorBlock message="شما دسترسی مشاهده حضور و غیاب را ندارید." /></div>;
+  }
 
   return (
-    <div className="space-y-6">
-      <Header title="حضور و غیاب" subtitle="ثبت ورود و خروج" onQuickAction={can('attendance.create') ? openCheckIn : undefined} quickActionLabel={can('attendance.create') ? 'ثبت ورود' : undefined} />
-      {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="امروز" value={stats.today_visits.toLocaleString('fa-IR')} icon={ClipboardCheck} accentColor="orange" />
-          <StatCard title="حاضر الان" value={stats.currently_inside.toLocaleString('fa-IR')} icon={UserCheck} accentColor="emerald" />
-          <StatCard title="این ماه" value={stats.month_visits.toLocaleString('fa-IR')} icon={LogIn} accentColor="blue" />
-          <StatCard title="کل" value={stats.total_visits.toLocaleString('fa-IR')} icon={LogOut} accentColor="purple" />
+    <div className="space-y-4">
+      <Header title="حضور و غیاب" subtitle="ثبت ورود و خروج اعضا و مهمان‌ها" actions={
+        <div className="flex items-center gap-2 flex-wrap">
+          <button type="button" onClick={load} disabled={loading} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl border border-border text-secondary hover:bg-surface-hover">
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> بروزرسانی
+          </button>
+          {canCreate && (
+            <button type="button" onClick={openCheckIn} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl bg-primary text-primary-fg font-bold">
+              <LogIn className="w-4 h-4" /> ثبت ورود
+            </button>
+          )}
         </div>
-      )}
-      <div className="flex justify-end"><button type="button" onClick={load} className="inline-flex items-center gap-2 px-3 py-2 text-sm border border-border rounded-lg text-muted"><RefreshCw className="w-4 h-4" />بروزرسانی</button></div>
-      {loading && <LoadingBlock />}
+      } />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard title="امروز" value={String(stats?.today_visits ?? '—')} icon={CalendarDays} accent="primary" />
+        <StatCard title="داخل باشگاه" value={String(stats?.currently_inside ?? '—')} icon={UserCheck} accent="success" />
+        <StatCard title="این ماه" value={String(stats?.month_visits ?? '—')} icon={Activity} accent="info" />
+        <StatCard title="کل مراجعات" value={String(stats?.total_visits ?? '—')} icon={Users} accent="warning" />
+      </div>
+
+      <div className="flex flex-wrap gap-2 items-center">
+        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجو نام، تلفن یا روش..."
+          className="flex-1 min-w-[180px] rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+        <select value={openFilter} onChange={(e) => setOpenFilter(e.target.value as typeof openFilter)} className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink">
+          <option value="all">همه وضعیت‌ها</option>
+          <option value="open">داخل باشگاه</option>
+          <option value="closed">خارج‌شده</option>
+        </select>
+      </div>
+
       {error && <ErrorBlock message={error} onRetry={load} />}
-      {!loading && !error && visits.length === 0 && <EmptyState title="حضور ثبت‌شده‌ای نیست" />}
-      {!loading && !error && visits.length > 0 && (
-        <DataTable columns={columns} data={visits} searchKeys={['customer_name', 'guest_name']} actions={(r) =>
-          r.is_open && can('attendance.create') ? (
-            <button type="button" className="text-xs text-primary hover:underline" onClick={() => doCheckOut(r.id)}>ثبت خروج</button>
-          ) : null
-        } />
+      {loading && !visits.length ? <LoadingBlock /> : !error && filtered.length === 0 ? (
+        <EmptyState title="رکوردی یافت نشد" description={visits.length ? 'با فیلتر فعلی نتیجه‌ای نیست.' : 'هنوز ورود/خروجی ثبت نشده است.'}
+          action={canCreate && !visits.length ? (
+            <button type="button" onClick={openCheckIn} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-xl bg-primary text-primary-fg font-bold">
+              <LogIn className="w-4 h-4" /> ثبت اولین ورود
+            </button>
+          ) : undefined} />
+      ) : (
+        <DataTable columns={columns} data={filtered} rowKey={(r) => r.id} loading={loading} />
       )}
+
       <Modal isOpen={checkInOpen} onClose={() => setCheckInOpen(false)} title="ثبت ورود">
-        <div className="space-y-4">
-          <FormField label="عضو" isSelect required value={customerId} onChange={(e) => setCustomerId(e.target.value)} options={[
-            { value: '', label: 'انتخاب کنید' },
-            ...members.map((m) => ({ value: String(m.id), label: `${m.full_name} — ${m.phone}` })),
-          ]} />
-          <div className="flex justify-end gap-2">
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setMode('member')} className={`flex-1 px-3 py-2 text-xs rounded-xl border ${mode === 'member' ? 'bg-primary-soft border-primary text-primary font-semibold' : 'border-border text-muted'}`}>عضو باشگاه</button>
+            <button type="button" onClick={() => setMode('guest')} className={`flex-1 px-3 py-2 text-xs rounded-xl border ${mode === 'guest' ? 'bg-primary-soft border-primary text-primary font-semibold' : 'border-border text-muted'}`}>مهمان</button>
+          </div>
+          {mode === 'member' ? (
+            <FormField label="عضو" required isSelect value={customerId}
+              options={[{ value: '', label: members.length ? 'انتخاب عضو' : 'عضوی یافت نشد' }, ...members.map((m) => ({ value: String(m.id), label: `${m.full_name}${m.phone ? ` — ${m.phone}` : ''}` }))]}
+              onChange={(e) => setCustomerId(e.target.value)} />
+          ) : (
+            <>
+              <FormField label="نام مهمان" required value={guestName} onChange={(e) => setGuestName(e.target.value)} />
+              <FormField label="شماره تماس" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} />
+            </>
+          )}
+          <FormField label="رشته ورزشی (اختیاری)" isSelect value={sportId}
+            options={[{ value: '', label: 'انتخاب رشته' }, ...sports.map((s) => ({ value: String(s.id), label: s.name }))]}
+            onChange={(e) => setSportId(e.target.value)} />
+          <FormField label="مبلغ (تومان) — اختیاری" type="number" min={0} value={price} onChange={(e) => setPrice(e.target.value)} />
+          <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => setCheckInOpen(false)} className="px-4 py-2 text-sm text-muted">انصراف</button>
-            <button type="button" disabled={busy || !customerId} onClick={doCheckIn} className="px-4 py-2 text-sm bg-primary text-[#0B0B0F] font-bold rounded-lg disabled:opacity-50">ثبت ورود</button>
+            <button type="button" disabled={busy} onClick={doCheckIn} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-fg font-bold disabled:opacity-50">{busy ? '...' : 'ثبت ورود'}</button>
           </div>
         </div>
       </Modal>
     </div>
   );
 };
+
+export default AttendancePage;
