@@ -48,12 +48,8 @@ export const AttendancePage: React.FC = () => {
   const [openFilter, setOpenFilter] = useState<'all' | 'open' | 'closed'>('all');
 
   const [checkInOpen, setCheckInOpen] = useState(false);
-  const [mode, setMode] = useState<'member' | 'guest'>('member');
   const [customerId, setCustomerId] = useState('');
   const [sportId, setSportId] = useState('');
-  const [guestName, setGuestName] = useState('');
-  const [guestPhone, setGuestPhone] = useState('');
-  const [price, setPrice] = useState('');
   const [busy, setBusy] = useState(false);
   const [checkingOutId, setCheckingOutId] = useState<number | null>(null);
 
@@ -103,8 +99,7 @@ export const AttendancePage: React.FC = () => {
   }, [visits, search, openFilter]);
 
   const openCheckIn = async () => {
-    setMode('member'); setCustomerId(''); setSportId(''); setGuestName(''); setGuestPhone(''); setPrice('');
-    setCheckInOpen(true);
+    setCustomerId(''); setSportId(''); setCheckInOpen(true);
     if (!gymId) return;
     try {
       const [m, sp] = await Promise.all([
@@ -118,18 +113,13 @@ export const AttendancePage: React.FC = () => {
 
   const doCheckIn = async () => {
     if (!gymId) return;
-    if (mode === 'member' && !customerId) { showToast('عضو را انتخاب کنید', 'warning'); return; }
-    if (mode === 'guest' && !guestName.trim()) { showToast('نام مهمان الزامی است', 'warning'); return; }
+    if (!customerId) { showToast('عضو را انتخاب کنید', 'warning'); return; }
     setBusy(true);
     try {
       await attendanceService.checkIn(gymId, {
-        customer_id: mode === 'member' ? Number(customerId) : null,
-        sport_id: sportId ? Number(sportId) : null,
+        customer_id: Number(customerId),
         method: 'manual',
-        source: mode === 'guest' ? 'direct' : 'manual',
-        guest_name: mode === 'guest' ? guestName.trim() : undefined,
-        guest_phone: mode === 'guest' ? guestPhone.trim() || undefined : undefined,
-        price: price !== '' ? Number(price) : null,
+        sport_id: sportId ? Number(sportId) : null,
       });
       showToast('ورود با موفقیت ثبت شد', 'success');
       setCheckInOpen(false);
@@ -162,26 +152,11 @@ export const AttendancePage: React.FC = () => {
         </div>
       ),
     },
-    {
-      key: 'sport', header: 'رشته',
-      render: (r) => <span className="text-sm text-muted">{r.sport != null ? sportNameById.get(r.sport) || '—' : '—'}</span>,
-    },
-    {
-      key: 'check_in_at', header: 'ورود',
-      render: (r) => <span className="text-xs text-muted tabular-nums">{r.check_in_at ? formatJalaliDateTime(r.check_in_at) : '—'}</span>,
-    },
-    {
-      key: 'check_out_at', header: 'خروج',
-      render: (r) => <span className="text-xs text-muted tabular-nums">{r.check_out_at ? formatJalaliDateTime(r.check_out_at) : '—'}</span>,
-    },
-    {
-      key: 'method', header: 'روش',
-      render: (r) => <span className="text-xs text-secondary">{methodLabel(r.method)}{r.source ? ` · ${sourceLabel(r.source)}` : ''}</span>,
-    },
-    {
-      key: 'price', header: 'مبلغ',
-      render: (r) => <span className="text-sm tabular-nums text-muted">{formatMoney(r.price)}</span>,
-    },
+    { key: 'sport', header: 'رشته', render: (r) => <span className="text-sm text-muted">{r.sport != null ? sportNameById.get(r.sport) || '—' : '—'}</span> },
+    { key: 'check_in_at', header: 'ورود', render: (r) => <span className="text-xs text-muted tabular-nums">{r.check_in_at ? formatJalaliDateTime(r.check_in_at) : '—'}</span> },
+    { key: 'check_out_at', header: 'خروج', render: (r) => <span className="text-xs text-muted tabular-nums">{r.check_out_at ? formatJalaliDateTime(r.check_out_at) : '—'}</span> },
+    { key: 'method', header: 'روش', render: (r) => <span className="text-xs text-secondary">{methodLabel(r.method)}{r.source ? ` · ${sourceLabel(r.source)}` : ''}</span> },
+    { key: 'price', header: 'مبلغ', render: (r) => <span className="text-sm tabular-nums text-muted">{formatMoney(r.price)}</span> },
     {
       key: 'is_open', header: 'وضعیت',
       render: (r) => (
@@ -209,7 +184,7 @@ export const AttendancePage: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <Header title="حضور و غیاب" subtitle="ثبت ورود و خروج اعضا و مهمان‌ها" actions={
+      <Header title="حضور و غیاب" subtitle="ثبت ورود و خروج اعضای باشگاه" actions={
         <div className="flex items-center gap-2 flex-wrap">
           <button type="button" onClick={load} disabled={loading} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl border border-border text-secondary hover:bg-surface-hover">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> بروزرسانی
@@ -230,7 +205,7 @@ export const AttendancePage: React.FC = () => {
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
-        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجو نام، تلفن یا روش..."
+        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجو نام یا روش..."
           className="flex-1 min-w-[180px] rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
         <select value={openFilter} onChange={(e) => setOpenFilter(e.target.value as typeof openFilter)} className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink">
           <option value="all">همه وضعیت‌ها</option>
@@ -253,24 +228,15 @@ export const AttendancePage: React.FC = () => {
 
       <Modal isOpen={checkInOpen} onClose={() => setCheckInOpen(false)} title="ثبت ورود">
         <div className="space-y-3">
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setMode('member')} className={`flex-1 px-3 py-2 text-xs rounded-xl border ${mode === 'member' ? 'bg-primary-soft border-primary text-primary font-semibold' : 'border-border text-muted'}`}>عضو باشگاه</button>
-            <button type="button" onClick={() => setMode('guest')} className={`flex-1 px-3 py-2 text-xs rounded-xl border ${mode === 'guest' ? 'bg-primary-soft border-primary text-primary font-semibold' : 'border-border text-muted'}`}>مهمان</button>
-          </div>
-          {mode === 'member' ? (
-            <FormField label="عضو" required isSelect value={customerId}
-              options={[{ value: '', label: members.length ? 'انتخاب عضو' : 'عضوی یافت نشد' }, ...members.map((m) => ({ value: String(m.id), label: `${m.full_name}${m.phone ? ` — ${m.phone}` : ''}` }))]}
-              onChange={(e) => setCustomerId(e.target.value)} />
-          ) : (
-            <>
-              <FormField label="نام مهمان" required value={guestName} onChange={(e) => setGuestName(e.target.value)} />
-              <FormField label="شماره تماس" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} />
-            </>
-          )}
+          <p className="text-[11px] text-muted">
+            فقط اعضای ثبت‌شده قابل ورود هستند. اگر عضو از قبل داخل باشگاه باشد، ورود مجدد خطا می‌دهد — ابتدا خروج ثبت کنید.
+          </p>
+          <FormField label="عضو" required isSelect value={customerId}
+            options={[{ value: '', label: members.length ? 'انتخاب عضو' : 'عضوی یافت نشد' }, ...members.map((m) => ({ value: String(m.id), label: `${m.full_name}${m.phone ? ` — ${m.phone}` : ''}` }))]}
+            onChange={(e) => setCustomerId(e.target.value)} />
           <FormField label="رشته ورزشی (اختیاری)" isSelect value={sportId}
             options={[{ value: '', label: 'انتخاب رشته' }, ...sports.map((s) => ({ value: String(s.id), label: s.name }))]}
             onChange={(e) => setSportId(e.target.value)} />
-          <FormField label="مبلغ (تومان) — اختیاری" type="number" min={0} value={price} onChange={(e) => setPrice(e.target.value)} />
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => setCheckInOpen(false)} className="px-4 py-2 text-sm text-muted">انصراف</button>
             <button type="button" disabled={busy} onClick={doCheckIn} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-fg font-bold disabled:opacity-50">{busy ? '...' : 'ثبت ورود'}</button>
