@@ -10,119 +10,158 @@ import {
   Headphones,
   CheckCircle2,
   FileText,
+  Server,
+  Cookie,
+  Scale,
 } from 'lucide-react';
 import { Header } from '../components/common/Header';
+
+const sections = [
+  {
+    icon: ShieldCheck,
+    title: '۱. مقدمه و تعهد فیتوپیا',
+    content:
+      'سامانه «فیتوپیا» (Fitopia) به‌عنوان پلتفرم مدیریت باشگاه‌های ورزشی، متعهد به حفاظت از اطلاعات شخصی و تجاری باشگاه‌داران، کارکنان، مربیان و اعضاست. این سند توضیح می‌دهد چه داده‌هایی جمع‌آوری می‌شود، چگونه استفاده و نگهداری می‌شود و چه حقوقی برای شما به‌عنوان کاربر پنل مدیریت وجود دارد.',
+  },
+  {
+    icon: Database,
+    title: '۲. داده‌هایی که جمع‌آوری می‌کنیم',
+    content:
+      'بسته به استفاده شما از پنل، ممکن است این موارد ذخیره شوند: مشخصات حساب (نام کاربری، شماره تماس)، مشخصات باشگاه (نام، آدرس، تلفن، ساعات کاری، شبکه‌های اجتماعی)، اطلاعات اعضا و مربیان، حضور و غیاب، دوره‌ها و رشته‌ها، تراکنش‌ها و پرداخت‌ها، تیکت‌های پشتیبانی و لاگ فعالیت‌های مدیریتی. داده‌ها صرفاً برای ارائه و بهبود خدمات مدیریت باشگاه استفاده می‌شوند.',
+  },
+  {
+    icon: FileText,
+    title: '۳. اهداف استفاده از اطلاعات',
+    content:
+      'از داده‌ها برای احراز هویت، مدیریت عضویت و حضور، گزارش مالی، پشتیبانی فنی، ارسال اعلان‌های مرتبط با پنل و رعایت الزامات قانونی استفاده می‌شود. از اطلاعات برای تبلیغات شخص ثالث یا فروش به دیگران استفاده نمی‌کنیم.',
+  },
+  {
+    icon: Lock,
+    title: '۴. امنیت و نگهداری',
+    content:
+      'ارتباط با سرور از طریق HTTPS انجام می‌شود. دسترسی به API با توکن JWT و نقش‌های کارکنان محدود است. پشتیبان‌گیری و کنترل دسترسی در زیرساخت سرور اعمال می‌شود. با این حال هیچ سامانه‌ای امنیت مطلق ندارد؛ توصیه می‌کنیم رمز عبور قوی انتخاب کنید و دسترسی کارکنان را فقط به حد نیاز بدهید.',
+  },
+  {
+    icon: EyeOff,
+    title: '۵. اشتراک‌گذاری با دیگران',
+    content:
+      'اطلاعات باشگاه و اعضا را به شرکت‌های تبلیغاتی نمی‌فروشیم و اجاره نمی‌دهیم. افشا فقط در موارد الزام قانونی، یا با رضایت شما، یا برای ارائه‌دهندگان زیرساخت فنی که تحت تعهد محرمانگی کار می‌کنند، ممکن است انجام شود.',
+  },
+  {
+    icon: UserCheck,
+    title: '۶. حقوق شما',
+    content:
+      'می‌توانید اطلاعات قابل ویرایش باشگاه را از بخش تنظیمات به‌روزرسانی کنید. برای تغییر نام یا آدرس رسمی باشگاه از مسیر تیکت‌ها درخواست ثبت کنید. درخواست مشاهده، اصلاح یا حذف داده‌های قابل حذف را از طریق پشتیبانی ارسال کنید؛ در حدود قانون و نیاز عملیاتی پاسخ داده می‌شود.',
+  },
+  {
+    icon: Cookie,
+    title: '۷. نشست و ذخیره‌سازی محلی',
+    content:
+      'برای حفظ ورود شما، توکن احراز هویت در فضای ذخیره‌سازی مرورگر نگهداری می‌شود. ترجیح تم (روشن/تاریک) نیز به‌صورت محلی ذخیره می‌شود. با خروج از حساب، نشست پایان می‌یابد. از دستگاه‌های مشترک بدون خروج استفاده نکنید.',
+  },
+  {
+    icon: Server,
+    title: '۸. نگهداری و حذف',
+    content:
+      'داده‌ها تا زمانی که حساب فعال است و برای ارائه خدمات یا الزامات قانونی لازم باشد نگهداری می‌شوند. پس از پایان همکاری یا درخواست حذف، داده‌های قابل حذف در بازه معقول از سیستم عملیاتی خارج یا ناشناس می‌شوند؛ نسخه‌های پشتیبان ممکن است تا چرخه پاکسازی بعدی باقی بمانند.',
+  },
+  {
+    icon: Scale,
+    title: '۹. تغییرات این سند',
+    content:
+      'ممکن است این بیانیه با توسعه محصول به‌روزرسانی شود. نسخه به‌روز در همین صفحه پنل در دسترس است. ادامه استفاده از سامانه پس از انتشار نسخه جدید به‌منزله آگاهی از تغییرات است؛ در تغییرات مهم تلاش می‌کنیم از طریق پنل اطلاع‌رسانی کنیم.',
+  },
+  {
+    icon: Headphones,
+    title: '۱۰. تماس با ما',
+    content:
+      'برای سوال یا درخواست مرتبط با حریم خصوصی، از بخش «تیکت‌ها» در همین پنل پیام بفرستید یا با ایمیل privacy@fitopia.ir تماس بگیرید. تیم پشتیبانی درخواست‌های مربوط به داده و امنیت را پیگیری می‌کند.',
+  },
+];
 
 export const PrivacyPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const privacySections = [
-    {
-      icon: ShieldCheck,
-      title: '۱. مقدمه و تعهد فیتوپیا به حریم خصوصی',
-      content:
-        'سامانه جامع مدیریت باشگاه‌های ورزشی «فیتوپیا» خود را متعهد به صیانت کامل از اطلاعات شخصی و تجاری باشگاه‌داران، مربیان و ورزشکاران می‌داند. این بیانیه نحوه جمع‌آوری، استفاده، ذخیره‌سازی و حفاظت از داده‌ها را تشریح می‌کند.',
-    },
-    {
-      icon: Database,
-      title: '۲. داده‌های جمع‌آوری‌شده و اهداف آن',
-      content:
-        'اطلاعات جمع‌آوری‌شده شامل مشخصات عمومی باشگاه (نام، آدرس، موقعیت جغرافیایی و تلفن تماس)، مشخصات مربیان، پرونده اعضا (نام، شماره تماس، رشته ورزشی و تاریخ ثبت‌نام) و اطلاعات تیکت‌های پشتیبانی می‌باشد. کلیه این اطلاعات صرفاً جهت ارائه خدمات مدیریتی، اطلاع‌رسانی تعرفه‌ها و هماهنگی‌های ورزشی استفاده می‌شود.',
-    },
-    {
-      icon: Lock,
-      title: '۳. نحوه نگهداری و امنیت اطلاعات',
-      content:
-        'کلیه داده‌های حساس و توکن‌های احراز هویت با استفاده از پروتکل‌های رمزنگاری پیشرفته (SSL/TLS) انتقال یافته و در دیتابیس‌های امن با سطوح دسترسی طبقه‌بندی‌شده نگهداری می‌شوند. پشتیبان‌گیری منظم و نظارت ۲۴/۷ برای جلوگیری از دسترسی غیرمجاز اعمال می‌گردد.',
-    },
-    {
-      icon: EyeOff,
-      title: '۴. عدم افشا و عدم اشتراک‌گذاری با اشخاص ثالث',
-      content:
-        'فیتوپیا متعهد است که اطلاعات باشگاه‌ها و ورزشکاران را به هیچ عنوان به اشخاص ثالث، شرکت‌های تبلیغاتی یا نهادهای غیرمرتبط نفروشد، اجاره ندهد و افشا نکند. دسترسی به اطلاعات تنها برای پرسنل مجاز فنی جهت ارائه خدمات پشتیبانی امکان‌پذیر است.',
-    },
-    {
-      icon: UserCheck,
-      title: '۵. حقوق باشگاه‌داران در مدیریت داده‌ها',
-      content:
-        'مدیران باشگاه‌ها در هر زمان حق دارند اطلاعات ثبت‌شده باشگاه خود، لیست مربیان و اعضا را مشاهده، ویرایش یا در صورت نیاز درخواست حذف کامل آن را به تیم پشتیبانی فیتوپیا ارائه نمایند.',
-    },
-    {
-      icon: Headphones,
-      title: '۶. تماس با بخش حریم خصوصی و پشتیبانی',
-      content:
-        'در صورت داشتن هرگونه سوال، ابهام یا درخواست در خصوص سیاست‌های حریم خصوصی، می‌توانید از طریق بخش تیکت‌های پشتیبانی در پنل یا ایمیل privacy@fitopia.ir با ما در ارتباط باشید.',
-    },
-  ];
-
   return (
     <div className="space-y-6">
-      <Header title="سیاست حریم خصوصی و امنیت داده‌ها" subtitle="تعهدنامه رسمی فیتوپیا در صیانت از اطلاعات باشگاه‌ها و اعضا" />
+      <Header title="حریم خصوصی" subtitle="سیاست حفاظت از داده‌ها در پنل باشگاه‌داران فیتوپیا" />
 
-      {/* Hero Banner */}
-      <div className="p-6 md:p-8 rounded-3xl bg-gradient-to-r from-[#1A1A1A] via-[#141414] to-[#0D0D0D] border border-[#2A2A2A] relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
-        <div className="space-y-3 max-w-2xl text-right z-10">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#FF7A1A]/10 text-[#FF7A1A] border border-[#FF7A1A]/20">
-            <Lock className="w-3.5 h-3.5" />
-            <span>حفاظت از داده‌های شما</span>
+      <div className="rounded-2xl border border-border bg-surface p-5 sm:p-6 flex flex-col md:flex-row md:items-center gap-5">
+        <div className="flex-1 space-y-3 text-right">
+          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-primary-soft text-primary text-[11px] font-semibold">
+            <FileText className="w-3.5 h-3.5" />
+            سند رسمی حریم خصوصی پنل
           </div>
-          <h2 className="text-xl md:text-2xl font-black text-white">
-            امنیت و حریم خصوصی شما اولویت مطلق ماست
+          <h2 className="text-lg sm:text-xl font-bold text-ink leading-snug">
+            حفاظت از اطلاعات باشگاه، اعضا و تراکنش‌ها
           </h2>
-          <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
-            در فیتوپیا، حفظ محرمانه بودن اطلاعات باشگاه و اطلاعات اعضای شما تضمین گردیده و طبق استانداردهای امنیتی دقیق مدیریت می‌شود.
+          <p className="text-sm text-muted leading-relaxed max-w-2xl">
+            این صفحه برای مدیران باشگاه نوشته شده است. محتوای آن با طراحی روشن و تاریک پنل سازگار است
+            و سیاست واقعی جمع‌آوری و استفاده از داده در محصول فیتوپیا را شرح می‌دهد.
           </p>
-          <div className="pt-2">
+          <div className="flex flex-wrap gap-2 pt-1">
             <button
+              type="button"
               onClick={() => navigate('/dashboard')}
-              className="px-4 py-2 bg-[#FF7A1A] hover:bg-[#FF8C00] text-slate-950 font-black rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-[#FF7A1A]/20 transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-fg text-xs font-bold"
             >
               <ArrowRight className="w-4 h-4" />
-              <span>بازگشت به داشبورد</span>
+              بازگشت به داشبورد
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/tickets')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-secondary text-xs font-semibold hover:bg-surface-hover"
+            >
+              ارسال تیکت پشتیبانی
             </button>
           </div>
         </div>
-
-        <div className="w-24 h-24 md:w-32 md:h-32 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
-          <ShieldCheck className="w-12 h-12 md:w-16 md:h-16" />
+        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-primary-soft border border-primary/20 flex items-center justify-center text-primary shrink-0 self-center md:self-auto">
+          <ShieldCheck className="w-10 h-10 sm:w-12 sm:h-12" />
         </div>
       </div>
 
-      {/* Privacy Clauses List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {privacySections.map((sec, idx) => {
-          const IconComp = sec.icon;
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+        {sections.map((sec) => {
+          const Icon = sec.icon;
           return (
-            <div key={idx} className="p-5 bg-[#141414] border border-[#262626] rounded-2xl space-y-3 text-right">
+            <article
+              key={sec.title}
+              className="p-4 sm:p-5 rounded-2xl border border-border bg-surface space-y-3 text-right"
+            >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#222] border border-[#333] flex items-center justify-center text-[#FF7A1A] shrink-0">
-                  <IconComp className="w-4 h-4" />
+                <div className="w-9 h-9 rounded-xl bg-surface-elevated border border-border flex items-center justify-center text-primary shrink-0">
+                  <Icon className="w-4 h-4" />
                 </div>
-                <h3 className="font-bold text-sm text-white">{sec.title}</h3>
+                <h3 className="font-bold text-sm text-ink leading-snug">{sec.title}</h3>
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed">{sec.content}</p>
-            </div>
+              <p className="text-xs sm:text-sm text-muted leading-relaxed">{sec.content}</p>
+            </article>
           );
         })}
       </div>
 
-      {/* Bottom Security Guarantee */}
-      <div className="p-6 rounded-2xl bg-[#141414] border border-[#262626] flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-3">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+      <div className="p-4 sm:p-5 rounded-2xl border border-border bg-surface flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <CheckCircle2 className="w-5 h-5 text-success-text shrink-0 mt-0.5" />
           <div>
-            <h4 className="text-xs font-bold text-white">مطابق با استانداردهای پایداری و امنیت داده‌های فیتوپیا</h4>
-            <p className="text-[11px] text-slate-400 mt-0.5">آخرین به روزرسانی سند حریم خصوصی: مرداد ۱۴۰۵</p>
+            <h4 className="text-sm font-bold text-ink">تعهد امنیت داده فیتوپیا</h4>
+            <p className="text-[11px] sm:text-xs text-muted mt-0.5">
+              آخرین به‌روزرسانی این سند: مرداد ۱۴۰۵ · نسخه پنل باشگاه‌داران
+            </p>
           </div>
         </div>
-
         <button
+          type="button"
           onClick={() => navigate('/tickets')}
-          className="px-4 py-2 bg-[#222] hover:bg-[#2A2A2A] text-slate-300 border border-[#333] font-bold rounded-xl text-xs transition-all cursor-pointer"
+          className="px-4 py-2 rounded-xl border border-border text-secondary text-xs font-bold hover:bg-surface-hover shrink-0"
         >
-          ارتباط با تیم امنیت
+          ارتباط با تیم پشتیبانی
         </button>
       </div>
     </div>
   );
 };
+
+export default PrivacyPage;
