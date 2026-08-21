@@ -203,10 +203,31 @@ export interface FinanceReport {
   income_by_category?: { category: string; total: number }[];
   outstanding_balances?: { customer_id: number; customer_name: string; remaining: number; payment_id: number }[];
 }
+
+/** OpenAPI / SingleSessionPurchase */
+export type SingleSessionStatus = 'unused' | 'used' | 'expired' | 'cancelled' | string;
+
 export interface SingleSession {
-  id: number; customer: number; sport?: number | null; price: number; status?: string;
-  purchased_at?: string; used_at?: string | null; expires_at?: string | null;
+  id: number;
+  gym?: number;
+  customer: number;
+  sport?: number | null;
+  price: number;
+  status?: SingleSessionStatus;
+  purchased_at?: string;
+  used_at?: string | null;
+  expires_at?: string | null;
+  transaction?: number | null;
 }
+
+export interface SingleSessionInput {
+  customer: number;
+  sport?: number | null;
+  price: number;
+  status?: SingleSessionStatus;
+  expires_at?: string | null;
+}
+
 export interface AuditLog {
   id: number; user?: number | null; user_name?: string | null; action: string;
   object_type?: string; object_id?: string; object_repr?: string | null;
