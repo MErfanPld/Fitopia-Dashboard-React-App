@@ -125,12 +125,52 @@ export interface CourseEnrollInput {
   customer: number; price_paid?: number | null;
 }
 
+export type VisitMethod = 'qr' | 'token' | 'manual' | 'membership' | string;
+export type VisitSource = 'token' | 'direct' | 'qr' | 'manual' | 'membership' | 'single_session' | string;
+
 export interface GymVisit {
-  id: number; customer?: number | null; customer_name?: string; guest_name?: string; guest_phone?: string;
-  check_in_at?: string | null; check_out_at?: string | null; is_open?: boolean; method?: string; source?: string;
-  price?: number; sport?: number | null; created_at?: string;
+  id: number;
+  gym?: number;
+  customer?: number | null;
+  customer_name?: string | null;
+  sport?: number | null;
+  price?: number | null;
+  source?: VisitSource;
+  method?: VisitMethod;
+  check_in_at?: string | null;
+  check_out_at?: string | null;
+  is_open?: boolean;
+  registered_by?: number | null;
+  guest_name?: string | null;
+  guest_phone?: string | null;
+  created_at?: string;
 }
-export interface AttendanceStats { today_visits: number; currently_inside: number; month_visits: number; total_visits: number; }
+
+export interface AttendanceStats {
+  today_visits?: number;
+  currently_inside?: number;
+  month_visits?: number;
+  total_visits?: number;
+  [key: string]: number | undefined;
+}
+
+export interface AttendanceCheckInInput {
+  customer?: number | null;
+  customer_id?: number | null;
+  sport?: number | null;
+  sport_id?: number | null;
+  method?: VisitMethod;
+  source?: VisitSource;
+  price?: number | null;
+  guest_name?: string;
+  guest_phone?: string;
+}
+
+export interface AttendanceCheckOutInput {
+  visit_id?: number;
+  visit?: number;
+  id?: number;
+}
 
 export interface GymPrice {
   id: number; sport: number; sport_name: string; session_price?: number | null;
