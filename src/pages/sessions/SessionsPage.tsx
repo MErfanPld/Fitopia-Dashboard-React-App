@@ -4,6 +4,7 @@ import { Header } from '../../components/common/Header';
 import { DataTable, Column } from '../../components/common/DataTable';
 import { Modal } from '../../components/common/Modal';
 import { FormField } from '../../components/common/FormField';
+import { JalaliDatePicker } from '../../components/common/JalaliDatePicker';
 import { EmptyState, ErrorBlock, LoadingBlock, NoGymSelected } from '../../components/common/EmptyState';
 import { useGymScoped } from '../../hooks/useGymScoped';
 import { useUI } from '../../context/UIContext';
@@ -156,7 +157,7 @@ export const SessionsPage: React.FC = () => {
         sport: sportId ? Number(sportId) : null,
         price: Math.floor(priceNum),
         status: 'unused',
-        expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
+        expires_at: expiresAt ? `${expiresAt}T23:59:59` : null,
       });
       showToast('جلسه تکی با موفقیت ثبت شد', 'success');
       setOpen(false);
@@ -342,11 +343,10 @@ export const SessionsPage: React.FC = () => {
             value={price}
             onChange={(e) => setPrice(e.target.value)}
           />
-          <FormField
+          <JalaliDatePicker
             label="تاریخ انقضا (اختیاری)"
-            type="datetime-local"
             value={expiresAt}
-            onChange={(e) => setExpiresAt(e.target.value)}
+            onChange={setExpiresAt}
           />
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => setOpen(false)} className="px-4 py-2 text-sm text-muted">
