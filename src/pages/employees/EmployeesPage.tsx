@@ -72,6 +72,8 @@ export const EmployeesPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<StaffEmployee | null>(null);
@@ -79,6 +81,10 @@ export const EmployeesPage: React.FC = () => {
   const [fitopiaCandidates, setFitopiaCandidates] = useState<{ id: number; label: string }[]>([]);
   const [candidatesLoading, setCandidatesLoading] = useState(false);
   const [role, setRole] = useState<string>('staff');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [employeeNumber, setEmployeeNumber] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [startDate, setStartDate] = useState('');
@@ -605,9 +611,9 @@ export const EmployeesPage: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-[11px] text-muted leading-relaxed">
+              {/* <p className="text-[11px] text-muted leading-relaxed">
                 با ذخیره، ابتدا یک کاربر فیتوپیا ساخته می‌شود و سپس کارمند به‌عنوان زیرمجموعه همان کاربر (رابطه StaffAccess.user) ثبت می‌گردد.
-              </p>
+              </p> */}
               <FormField
                 label="نام و نام خانوادگی"
                 required
