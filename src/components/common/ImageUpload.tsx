@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { ImagePlus, Trash2, Upload, User } from 'lucide-react';
+import { Camera, ImagePlus, Trash2, Upload, User } from 'lucide-react';
 
 export interface ImageUploadProps {
   value?: string | null;
@@ -12,6 +12,7 @@ export interface ImageUploadProps {
   accept?: string;
   disabled?: boolean;
   error?: string;
+  allowCamera?: boolean;
 }
 
 const DEFAULT_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif';
@@ -27,8 +28,10 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   accept = DEFAULT_ACCEPT,
   disabled,
   error,
+  allowCamera = true,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -74,17 +77,18 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     onChange(null);
     onClearUrl?.();
     if (inputRef.current) inputRef.current.value = '';
+    if (cameraRef.current) cameraRef.current.value = '';
   };
 
   const isAvatar = mode === 'avatar';
   const msg = error || localError;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {label && <p className="text-xs font-semibold text-secondary">{label}</p>}
-      <div className={`flex ${isAvatar ? 'items-center gap-4' : 'flex-col gap-3'}`}>
+      <div className={`flex gap-3 ${isAvatar ? 'items-center' : 'flex-col sm:flex-row'}`}>
         <div
-          className={`relative overflow-hidden border border-border bg-surface-elevated flex items-center justify-center ${
+          className={`relative overflow-hidden border border-border bg-surface-elevated flex items-center justify-center shrink-0 ${
             isAvatar ? 'w-20 h-20 rounded-2xl' : 'w-full h-40 rounded-xl'
           }`}
         >
@@ -113,22 +117,18 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             <p className="text-xs text-ink font-medium">انتخاب یا رها کردن تصویر</p>
             <p className="text-[10px] text-muted mt-0.5">JPG، PNG، WEBP — تا {maxSizeMB}MB</p>
           </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => inputRef.current?.click()}
-              className="px-3 py-1.5 text-xs rounded-lg border border-border text-ink hover:bg-surface-hover"
-            >
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={disabled} onClick={() => inputRef.current?.click()} className="px-3 py-1.5 text-xs rounded-lg border border-border text-ink hover:bg-surface-hover">
               انتخاب فایل
             </button>
+            {allowCamera && (
+              <button type="button" disabled={disabled} onClick={() => cameraRef.current?.click()} className="px-3 py-1.5 text-xs rounded-lg border border-border text-ink hover:bg-surface-hover inline-flex items-center gap-1">
+                <Camera className="w-3.5 h-3.5" />
+                عکس گرفتن
+              </button>
+            )}
             {(previewSrc || file) && (
-              <button
-                type="button"
-                disabled={disabled}
-                onClick={clear}
-                className="px-3 py-1.5 text-xs rounded-lg border border-danger/30 text-danger-text hover:bg-danger-soft inline-flex items-center gap-1"
-              >
+              <button type="button" disabled={disabled} onClick={clear} className="px-3 py-1.5 text-xs rounded-lg border border-danger/30 text-danger-text hover:bg-danger-soft inline-flex items-center gap-1">
                 <Trash2 className="w-3.5 h-3.5" />
                 حذف
               </button>
@@ -136,15 +136,13 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           </div>
         </div>
       </div>
-      <input
-        ref={inputRef}
-        type="file"
-        accept={accept}
-        className="hidden"
-        disabled={disabled}
-        onChange={(e) => applyFile(e.target.files?.[0] || null)}
-      />
+      <input ref={inputRef} type="file" accept={accept} className="hidden" disabled={disabled} onChange={(e) => applyFile(e.target.files?.[0] || null)} />
+      {allowCamera && (
+        <input ref={cameraRef} type="file" accept="image/*" capture="user" className="hidden" disabled={disabled} onChange={(e) => applyFile(e.target.files?.[0] || null)} />
+      )}
       {msg && <p className="text-[11px] text-danger-text">{msg}</p>}
     </div>
   );
 };
+
+export default ImageUpload;
