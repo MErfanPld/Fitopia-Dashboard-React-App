@@ -27,7 +27,11 @@ export const membersService = {
   async create(gymId: number, payload: GymMemberInput): Promise<GymMember> {
     try {
       const body = sanitizePayload(payload);
-      const { data } = await api.post(`/gym-panel/gyms/${gymId}/members/`, body);
+      const { data } = await api.post(
+        `/gym-panel/gyms/${gymId}/members/`,
+        toRequestBody(body, payload.photo),
+        payload.photo instanceof File ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined,
+      );
       return data;
     } catch (e) {
       throw new Error(getErrorMessage(e, 'خطا در ثبت عضو'));
@@ -37,7 +41,11 @@ export const membersService = {
   async update(gymId: number, id: number, payload: Partial<GymMemberInput>): Promise<GymMember> {
     try {
       const body = sanitizePayload(payload as GymMemberInput, true);
-      const { data } = await api.patch(`/gym-panel/gyms/${gymId}/members/${id}/`, body);
+      const { data } = await api.patch(
+        `/gym-panel/gyms/${gymId}/members/${id}/`,
+        toRequestBody(body, payload.photo),
+        payload.photo instanceof File ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined,
+      );
       return data;
     } catch (e) {
       throw new Error(getErrorMessage(e, 'خطا در به‌روزرسانی عضو'));
@@ -84,7 +92,6 @@ function sanitizePayload(payload: Partial<GymMemberInput>, partial = false): Rec
     if (payload.join_date) body.join_date = String(payload.join_date);
   }
 
-  // Optional FKs — only include when set (omit null on create to avoid backend 400)
   if (payload.sport != null && payload.sport !== 0) {
     body.sport = payload.sport;
   } else if (partial && payload.sport === null) {
@@ -147,6 +154,18 @@ function sanitizePayload(payload: Partial<GymMemberInput>, partial = false): Rec
   }
 
   return body;
+}
+
+function toRequestBody(body: Record<string, unknown>, photo?: string | File | null): Record<string, unknown> | FormData {
+  if (!(photo instanceof File)) return body;
+  const fd = new FormData();
+  Object.entries(body).forEach(([k, v]) => {
+    if (v === undefined || v === null) return;
+    if (typeof v === 'boolean' || typeof v === 'number') fd.append(k, String(v));
+    else fd.append(k, String(v));
+  });
+  fd.append('photo', photo);
+  return fd;
 }
 
 export default membersService;
