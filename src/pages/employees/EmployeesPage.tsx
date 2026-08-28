@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Shield, RefreshCw, UserPlus, Edit3, Trash2, Eye, UserCog } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Shield, RefreshCw, UserPlus, Edit3, Trash2, Eye, UserCog, Filter, X } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { DataTable, Column } from '../../components/common/DataTable';
 import { Modal } from '../../components/common/Modal';
@@ -10,6 +10,7 @@ import { EmptyState, ErrorBlock, LoadingBlock, NoGymSelected } from '../../compo
 import { useGymScoped } from '../../hooks/useGymScoped';
 import { useUI } from '../../context/UIContext';
 import employeesService from '../../services/employees/employeesService';
+import authService from '../../services/auth/authService';
 import membersService from '../../services/members/membersService';
 import {
   ROLE_LABELS,
@@ -108,6 +109,27 @@ export const EmployeesPage: React.FC = () => {
   useEffect(() => {
     if (hasGym && can('employee.view')) load();
   }, [hasGym, load, can]);
+  useEffect(() => {
+    if (!filterOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) setFilterOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [filterOpen]);
+
+
+  const activeFilterCount = useMemo(() => {
+    let n = 0;
+    if (roleFilter !== 'all') n += 1;
+    if (activeFilter !== 'all') n += 1;
+    return n;
+  }, [roleFilter, activeFilter]);
+
+  const clearFilters = () => {
+    setRoleFilter('all');
+    setActiveFilter('all');
+  };
 
   const filtered = useMemo(() => {
     let rows = items.filter(Boolean);
@@ -161,6 +183,10 @@ export const EmployeesPage: React.FC = () => {
   const openCreate = () => {
     setEditing(null);
     setUserId('');
+    setFullName('');
+    setPhone('');
+    setUsername('');
+    setPassword('');
     setRole('staff');
     setEmployeeNumber('');
     setIsActive(true);
@@ -168,7 +194,6 @@ export const EmployeesPage: React.FC = () => {
     setEndDate('');
     setFormErrors({});
     setFormOpen(true);
-    void loadFitopiaCandidates();
   };
 
   const openEdit = async (r: StaffEmployee) => {
@@ -223,10 +248,13 @@ export const EmployeesPage: React.FC = () => {
   const validate = (): Record<string, string> => {
     const errs: Record<string, string> = {};
     if (!editing) {
-      const uid = Number(userId);
-      if (!userId.trim() || !Number.isInteger(uid) || uid <= 0) {
-        errs.user = 'لطفاً یک کاربر فیتوپیا را از لیست انتخاب کنید.';
+      if (!fullName.trim()) errs.full_name = 'نام و نام خانوادگی الزامی است.';
+      const p = phone.trim().replace(/\s+/g, '');
+      if (!p) errs.phone = 'شماره موبایل الزامی است.';
+      else if (!/^09\d{9}$/.test(p) && !/^\+98\d{10}$/.test(p) && !/^9\d{9}$/.test(p)) {
+        errs.phone = 'شماره موبایل معتبر نیست.';
       }
+      if (!password || password.length < 8) errs.password = 'رمز عبور حداقل ۸ کاراکتر باشد.';
     }
     if (!role) errs.role = 'نقش را انتخاب کنید.';
     if (startDate && endDate && startDate > endDate) {
@@ -245,21 +273,43 @@ export const EmployeesPage: React.FC = () => {
     }
     setSaving(true);
     try {
-      const payload: StaffEmployeeInput = {
-        user: Number(userId),
-        role,
-        is_active: isActive,
-        start_date: startDate || null,
-        end_date: endDate || null,
-        employee_number: employeeNumber.trim(),
-      };
       if (editing) {
-        const { user: _u, ...rest } = payload;
-        await employeesService.update(gymId, editing.id, rest);
+        await employeesService.update(gymId, editing.id, {
+          role,
+          is_active: isActive,
+          start_date: startDate || null,
+          end_date: endDate || null,
+          employee_number: employeeNumber.trim(),
+        });
         showToast('اطلاعات کارمند با موفقیت ویرایش شد', 'success');
       } else {
-        await employeesService.create(gymId, payload);
-        showToast('کارمند با موفقیت اضافه شد', 'success');
+        // 1) ایجاد کاربر فیتوپیا با رمز عبور
+        const phoneNorm = phone.trim().replace(/\s+/g, '');
+        const registered = await authService.registerUser({
+          full_name: fullName.trim(),
+          phone_number: phoneNorm,
+          username: username.trim() || undefined,
+          password,
+        });
+        // 2) ایجاد رابطه StaffAccess (کارمند زیرمجموعه همان کاربر)
+        const created = await employeesService.create(gymId, {
+          user: registered.id,
+          role,
+          is_active: isActive,
+          start_date: startDate || null,
+          end_date: endDate || null,
+          employee_number: employeeNumber.trim(),
+        });
+        // 3) اعمال permissionهای پیش‌فرض نقش
+        const defaults = ROLE_DEFAULTS[role as StaffRole] || [];
+        if (defaults.length && created?.id) {
+          try {
+            await employeesService.setPermissions(gymId, created.id, defaults);
+          } catch {
+            /* مجوز جداگانه قابل تنظیم از مودال مجوزهاست */
+          }
+        }
+        showToast('کاربر و کارمند با موفقیت ایجاد شدند', 'success');
       }
       setFormOpen(false);
       await load();
@@ -454,27 +504,66 @@ export const EmployeesPage: React.FC = () => {
           placeholder="جستجو نام کاربری، موبایل یا کد پرسنلی..."
           className="flex-1 min-w-[180px] rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
         />
-        <select
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
-          className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink"
-        >
-          <option value="all">همه نقش‌ها</option>
-          {ROLE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={activeFilter}
-          onChange={(e) => setActiveFilter(e.target.value as typeof activeFilter)}
-          className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink"
-        >
-          <option value="all">همه وضعیت‌ها</option>
-          <option value="active">فعال</option>
-          <option value="inactive">غیرفعال</option>
-        </select>
+        <div className="relative" ref={filterRef}>
+          <button
+            type="button"
+            onClick={() => setFilterOpen((v) => !v)}
+            className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl border ${
+              activeFilterCount > 0
+                ? 'border-primary bg-primary-soft text-primary'
+                : 'border-border text-secondary hover:bg-surface-hover'
+            }`}
+            aria-expanded={filterOpen}
+          >
+            <Filter className="w-4 h-4" />
+            فیلترها
+            {activeFilterCount > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-primary text-primary-fg text-[11px] font-bold">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+          {filterOpen && (
+            <div className="absolute top-full mt-2 left-0 z-30 w-72 rounded-2xl border border-border bg-surface shadow-xl p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-ink">فیلترها</span>
+                <button type="button" onClick={() => setFilterOpen(false)} className="p-1 rounded-lg text-muted hover:bg-surface-hover" aria-label="بستن">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-secondary">نقش</label>
+                <select
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink"
+                >
+                  <option value="all">همه نقش‌ها</option>
+                  {ROLE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-secondary">وضعیت</label>
+                <select
+                  value={activeFilter}
+                  onChange={(e) => setActiveFilter(e.target.value as typeof activeFilter)}
+                  className="w-full rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink"
+                >
+                  <option value="all">همه وضعیت‌ها</option>
+                  <option value="active">فعال</option>
+                  <option value="inactive">غیرفعال</option>
+                </select>
+              </div>
+              {activeFilterCount > 0 && (
+                <button type="button" onClick={clearFilters} className="w-full text-xs text-primary font-medium py-1.5 hover:underline">
+                  پاک کردن فیلترها
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {error && <ErrorBlock message={error} onRetry={load} />}
@@ -515,26 +604,39 @@ export const EmployeesPage: React.FC = () => {
               <p className="text-[11px] text-muted">کاربر پس از ثبت قابل تغییر نیست.</p>
             </div>
           ) : (
-            <div className="space-y-1.5">
+            <div className="space-y-3">
+              <p className="text-[11px] text-muted leading-relaxed">
+                با ذخیره، ابتدا یک کاربر فیتوپیا ساخته می‌شود و سپس کارمند به‌عنوان زیرمجموعه همان کاربر (رابطه StaffAccess.user) ثبت می‌گردد.
+              </p>
               <FormField
-                label="کاربر فیتوپیا"
+                label="نام و نام خانوادگی"
                 required
-                isSelect
-                value={userId}
-                error={formErrors.user}
-                options={[
-                  {
-                    value: '',
-                    label: candidatesLoading ? 'در حال بارگذاری...' : 'انتخاب کاربر (نام / موبایل)',
-                  },
-                  ...fitopiaCandidates.map((c) => ({ value: String(c.id), label: c.label })),
-                ]}
-                onChange={(e) => setUserId(e.target.value)}
-                helpText={
-                  fitopiaCandidates.length
-                    ? 'فقط کاربرانی که حساب فیتوپیا دارند (از اعضای باشگاه) نمایش داده می‌شوند.'
-                    : 'عضوی با حساب فیتوپیا یافت نشد. ابتدا عضو را با کاربر فیتوپیا ثبت کنید.'
-                }
+                value={fullName}
+                error={formErrors.full_name}
+                onChange={(e) => setFullName(e.target.value)}
+              />
+              <FormField
+                label="شماره موبایل"
+                required
+                value={phone}
+                error={formErrors.phone}
+                placeholder="09xxxxxxxxx"
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              <FormField
+                label="نام کاربری"
+                value={username}
+                placeholder="اختیاری — در صورت خالی بودن از موبایل استفاده می‌شود"
+                onChange={(e) => setUsername(e.target.value)}
+              />
+              <FormField
+                label="رمز عبور"
+                required
+                type="password"
+                value={password}
+                error={formErrors.password}
+                placeholder="حداقل ۸ کاراکتر"
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
           )}

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Edit3, Trash2, Eye, RefreshCw, UserPlus, User } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { DataTable, Column } from '../../components/common/DataTable';
@@ -70,6 +70,11 @@ export const CoachesPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [sportFilter, setSportFilter] = useState('all');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  const activeFilterCount = sportFilter !== 'all' ? 1 : 0;
+  const clearFilters = () => setSportFilter('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<GymCoach | null>(null);
   const [form, setForm] = useState<GymCoachInput>(emptyForm());
@@ -115,6 +120,17 @@ export const CoachesPage: React.FC = () => {
   useEffect(() => {
     if (hasGym) load();
   }, [hasGym, load]);
+  useEffect(() => {
+    if (!filterOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [filterOpen]);
+
 
   const filtered = useMemo(() => {
     let rows = items;
@@ -300,12 +316,54 @@ export const CoachesPage: React.FC = () => {
           placeholder="جستجو نام، تخصص یا رشته..."
           className="flex-1 min-w-[180px] rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
         />
-        <select value={sportFilter} onChange={(e) => setSportFilter(e.target.value)} className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink">
-          <option value="all">همه رشته‌ها</option>
-          {sports.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
+        <div className="relative" ref={filterRef}>
+          <button
+            type="button"
+            onClick={() => setFilterOpen((v) => !v)}
+            className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl border ${
+              activeFilterCount > 0
+                ? 'border-primary bg-primary-soft text-primary'
+                : 'border-border text-secondary hover:bg-surface-hover'
+            }`}
+            aria-expanded={filterOpen}
+          >
+            <Filter className="w-4 h-4" />
+            فیلترها
+            {activeFilterCount > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-primary text-primary-fg text-[11px] font-bold">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+          {filterOpen && (
+            <div className="absolute top-full mt-2 left-0 z-30 w-72 rounded-2xl border border-border bg-surface shadow-xl p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-ink">فیلترها</span>
+                <button type="button" onClick={() => setFilterOpen(false)} className="p-1 rounded-lg text-muted hover:bg-surface-hover" aria-label="بستن">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-secondary">رشته ورزشی</label>
+                <select
+                  value={sportFilter}
+                  onChange={(e) => setSportFilter(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink"
+                >
+                  <option value="all">همه رشته‌ها</option>
+                  {sports.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+              {activeFilterCount > 0 && (
+                <button type="button" onClick={clearFilters} className="w-full text-xs text-primary font-medium py-1.5 hover:underline">
+                  پاک کردن فیلترها
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {error && <ErrorBlock message={error} onRetry={load} />}
