@@ -1,13 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Users, ClipboardCheck, Wallet, UserCheck, Dumbbell, BookOpen, Layers,
-  UserPlus, Plus, CalendarCheck, CreditCard, ArrowLeft, RefreshCw,
+  UserPlus, Plus, CalendarCheck, CreditCard, ArrowLeft,
 } from 'lucide-react';
 import { Header } from '../components/common/Header';
 import { StatCard } from '../components/common/StatCard';
 import { ErrorBlock, LoadingBlock, NoGymSelected } from '../components/common/EmptyState';
-import { Button } from '../components/ui/Button';
 import { useGymScoped } from '../hooks/useGymScoped';
 import { useAuth } from '../context/AuthContext';
 import membersService from '../services/members/membersService';
@@ -42,6 +41,7 @@ function money(n: number | null | undefined): string {
 export const DashboardPage: React.FC = () => {
   const { gymId, hasGym, can } = useGymScoped();
   const { currentGym, user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<DashStats>({
@@ -177,7 +177,7 @@ export const DashboardPage: React.FC = () => {
     },
     can('offering.manage') && {
       to: '/offerings',
-      label: 'افزودن خدمت',
+      label: 'افزودن رشته',
       icon: Layers,
       color: 'text-primary bg-primary-soft border-primary/20',
     },
@@ -190,7 +190,7 @@ export const DashboardPage: React.FC = () => {
   ].filter(Boolean) as { to: string; label: string; icon: React.ElementType; color: string }[];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <Header
         title={`سلام، ${firstName}`}
         subtitle={gymName}
@@ -203,7 +203,7 @@ export const DashboardPage: React.FC = () => {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-bold text-ink">عملیات سریع</h2>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             {quickActions.map((qa) => {
               const Icon = qa.icon;
               return (
@@ -228,13 +228,31 @@ export const DashboardPage: React.FC = () => {
       {!loading && !error && (
         <>
           <section aria-label="آمار کلیدی">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
               {can('customer.view') && (
-                <StatCard title="اعضا" value={fmt(stats.members)} icon={Users} accent="primary" />
+                <StatCard
+                  title="اعضا"
+                  value={fmt(stats.members)}
+                  icon={Users}
+                  accent="primary"
+                  onClick={() => navigate('/members')}
+                />
               )}
-              <StatCard title="مربیان" value={fmt(stats.coaches)} icon={Dumbbell} accent="info" />
+              <StatCard
+                title="مربیان"
+                value={fmt(stats.coaches)}
+                icon={Dumbbell}
+                accent="info"
+                onClick={() => navigate('/coaches')}
+              />
               {can('employee.view') && (
-                <StatCard title="کارکنان" value={fmt(stats.employees)} icon={UserCheck} accent="success" />
+                <StatCard
+                  title="کارکنان"
+                  value={fmt(stats.employees)}
+                  icon={UserCheck}
+                  accent="success"
+                  onClick={() => navigate('/employees')}
+                />
               )}
               {can('attendance.view') && (
                 <StatCard
@@ -247,13 +265,26 @@ export const DashboardPage: React.FC = () => {
                       ? `${fmt(stats.attendance.currently_inside)} نفر داخل باشگاه`
                       : undefined
                   }
+                  onClick={() => navigate('/attendance')}
                 />
               )}
               {can('course.view') && (
-                <StatCard title="دوره‌ها" value={fmt(stats.courses)} icon={BookOpen} accent="info" />
+                <StatCard
+                  title="دوره‌ها"
+                  value={fmt(stats.courses)}
+                  icon={BookOpen}
+                  accent="info"
+                  onClick={() => navigate('/courses')}
+                />
               )}
               {can('offering.manage') && (
-                <StatCard title="خدمات" value={fmt(stats.offerings)} icon={Layers} accent="primary" />
+                <StatCard
+                  title="رشته‌ها"
+                  value={fmt(stats.offerings)}
+                  icon={Layers}
+                  accent="primary"
+                  onClick={() => navigate('/offerings')}
+                />
               )}
               {can('finance.report') && stats.finance && (
                 <StatCard
@@ -261,13 +292,14 @@ export const DashboardPage: React.FC = () => {
                   value={money(stats.finance.monthly?.income)}
                   icon={Wallet}
                   accent="success"
+                  onClick={() => navigate('/finance/reports')}
                 />
               )}
             </div>
           </section>
 
           {can('finance.report') && stats.finance && (
-            <section aria-label="خلاصه مالی" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <section aria-label="خلاصه مالی" className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {(['daily', 'monthly'] as const).map((period) => {
                 const block = stats.finance![period];
                 if (!block) return null;
@@ -320,7 +352,7 @@ export const DashboardPage: React.FC = () => {
                 can('customer.view') && { to: '/members', label: 'اعضا' },
                 { to: '/coaches', label: 'مربیان' },
                 can('attendance.view') && { to: '/attendance', label: 'حضور و غیاب' },
-                can('offering.manage') && { to: '/offerings', label: 'خدمات' },
+                can('offering.manage') && { to: '/offerings', label: 'رشته‌ها' },
                 can('course.view') && { to: '/courses', label: 'دوره‌ها' },
                 can('finance.view') && { to: '/finance/payments', label: 'پرداخت‌ها' },
                 { to: '/settings', label: 'تنظیمات' },
@@ -344,13 +376,6 @@ export const DashboardPage: React.FC = () => {
         </>
       )}
 
-      {!loading && !error && (
-        <div className="flex justify-center pt-2">
-          <Button variant="ghost" size="sm" onClick={load} leftIcon={<RefreshCw className="w-3.5 h-3.5" />}>
-            بروزرسانی داده‌ها
-          </Button>
-        </div>
-      )}
     </div>
   );
 };
