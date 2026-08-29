@@ -1,9 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, RefreshCw, Edit3, Trash2, Eye, Clock, X } from 'lucide-react';
-
-// RESTORED - full file follows in next push if truncated
-export default function OfferingsPage() { return null; }
-
 import { Header } from '../../components/common/Header';
 import { DataTable, Column } from '../../components/common/DataTable';
 import { Modal } from '../../components/common/Modal';
