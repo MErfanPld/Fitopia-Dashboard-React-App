@@ -152,6 +152,11 @@ export const financeService = {
       throw new Error(getErrorMessage(e, 'خطا در دریافت گزارش مالی'));
     }
   },
+
+  /** Alias — بعضی نسخه‌های قدیمی getReport صدا می‌زدند */
+  async getReport(gymId: number): Promise<FinanceReport> {
+    return financeService.report(gymId);
+  },
 };
 
 export default financeService;
