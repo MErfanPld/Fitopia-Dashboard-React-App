@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { LogIn, LogOut, RefreshCw, Users, UserCheck, CalendarDays, Activity } from 'lucide-react';
+import { FilterPopover } from '../../components/common/FilterPopover';
 import { Header } from '../../components/common/Header';
 import { DataTable, Column } from '../../components/common/DataTable';
 import { Modal } from '../../components/common/Modal';
@@ -46,6 +47,8 @@ export const AttendancePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [openFilter, setOpenFilter] = useState<'all' | 'open' | 'closed'>('all');
+  const activeFilterCount = openFilter !== 'all' ? 1 : 0;
+  const clearFilters = () => setOpenFilter('all');
 
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [customerId, setCustomerId] = useState('');
@@ -207,11 +210,21 @@ export const AttendancePage: React.FC = () => {
       <div className="flex flex-wrap gap-2 items-center">
         <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="جستجو نام یا روش..."
           className="flex-1 min-w-[180px] rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
-        <select value={openFilter} onChange={(e) => setOpenFilter(e.target.value as typeof openFilter)} className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink">
-          <option value="all">همه وضعیت‌ها</option>
-          <option value="open">داخل باشگاه</option>
-          <option value="closed">خارج‌شده</option>
-        </select>
+        <FilterPopover
+          activeCount={activeFilterCount}
+          onClear={clearFilters}
+          fields={[{
+            key: 'open',
+            label: 'وضعیت حضور',
+            value: openFilter,
+            onChange: (v) => setOpenFilter(v as typeof openFilter),
+            options: [
+              { value: 'all', label: 'همه وضعیت‌ها' },
+              { value: 'open', label: 'داخل باشگاه' },
+              { value: 'closed', label: 'خارج‌شده' },
+            ],
+          }]}
+        />
       </div>
 
       {error && <ErrorBlock message={error} onRetry={load} />}
