@@ -6,6 +6,7 @@ import { Modal } from '../../components/common/Modal';
 import { FormField } from '../../components/common/FormField';
 import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
 import { EmptyState, ErrorBlock, LoadingBlock, NoGymSelected } from '../../components/common/EmptyState';
+import { FilterPopover } from '../../components/common/FilterPopover';
 import { useGymScoped } from '../../hooks/useGymScoped';
 import { useUI } from '../../context/UIContext';
 import pricesService from '../../services/prices/pricesService';
@@ -13,8 +14,8 @@ import sportsService from '../../services/sports/sportsService';
 import type { GymPrice, Sport, GymPriceInput } from '../../types/api';
 
 function formatMoney(n?: number | null) {
-  if (n == null || Number.isNaN(Number(n))) return '—';
-  return `${Number(n).toLocaleString('fa-IR')} تومان`;
+  if (n == null || Number.isNaN(Number(n))) return '\u2014';
+  return `${Number(n).toLocaleString('fa-IR')} \u062a\u0648\u0645\u0627\u0646`;
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -74,6 +75,8 @@ export const PricesPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [sportFilter, setSportFilter] = useState('all');
+  const activeFilterCount = sportFilter !== 'all' ? 1 : 0;
+  const clearFilters = () => setSportFilter('all');
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<GymPrice | null>(null);
@@ -91,7 +94,7 @@ export const PricesPage: React.FC = () => {
   }, [sports]);
 
   const resolveSport = (p: GymPrice) =>
-    p.sport_name || (p.sport != null ? sportNameById.get(p.sport) : undefined) || '—';
+    p.sport_name || (p.sport != null ? sportNameById.get(p.sport) : undefined) || '\u2014';
 
   const load = useCallback(async () => {
     if (!gymId) return;
@@ -105,7 +108,7 @@ export const PricesPage: React.FC = () => {
       setItems((list || []).filter((x) => x && x.id != null));
       setSports(sp || []);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'خطا در دریافت قیمت‌ها');
+      setError(e instanceof Error ? e.message : '\u062e\u0637\u0627 \u062f\u0631 \u062f\u0631\u06cc\u0627\u0641\u062a \u0642\u06cc\u0645\u062a\u200c\u0647\u0627');
     } finally {
       setLoading(false);
     }
@@ -166,12 +169,12 @@ export const PricesPage: React.FC = () => {
 
   const validate = (): Record<string, string> => {
     const errs: Record<string, string> = {};
-    if (!editing && !form.sport) errs.sport = 'رشته ورزشی را انتخاب کنید.';
+    if (!editing && !form.sport) errs.sport = '\u0631\u0634\u062a\u0647 \u0648\u0631\u0632\u0634\u06cc \u0631\u0627 \u0627\u0646\u062a\u062e\u0627\u0628 \u06a9\u0646\u06cc\u062f.';
     if (form.monthly_price === '' || Number(form.monthly_price) < 0) {
-      errs.monthly_price = 'قیمت ماهانه الزامی است.';
+      errs.monthly_price = '\u0642\u06cc\u0645\u062a \u0645\u0627\u0647\u0627\u0646\u0647 \u0627\u0644\u0632\u0627\u0645\u06cc \u0627\u0633\u062a.';
     }
     if (form.yearly_price === '' || Number(form.yearly_price) < 0) {
-      errs.yearly_price = 'قیمت سالانه الزامی است.';
+      errs.yearly_price = '\u0642\u06cc\u0645\u062a \u0633\u0627\u0644\u0627\u0646\u0647 \u0627\u0644\u0632\u0627\u0645\u06cc \u0627\u0633\u062a.';
     }
     return errs;
   };
@@ -189,15 +192,15 @@ export const PricesPage: React.FC = () => {
       const payload = formToPayload(form);
       if (editing) {
         await pricesService.replace(gymId, editing.id, { ...payload, sport: editing.sport });
-        showToast('قیمت با موفقیت ویرایش شد', 'success');
+        showToast('\u0642\u06cc\u0645\u062a \u0628\u0627 \u0645\u0648\u0641\u0642\u06cc\u062a \u0648\u06cc\u0631\u0627\u06cc\u0634 \u0634\u062f', 'success');
       } else {
         await pricesService.create(gymId, payload);
-        showToast('قیمت با موفقیت ثبت شد', 'success');
+        showToast('\u0642\u06cc\u0645\u062a \u0628\u0627 \u0645\u0648\u0641\u0642\u06cc\u062a \u062b\u0628\u062a \u0634\u062f', 'success');
       }
       setOpen(false);
       await load();
     } catch (e: unknown) {
-      showToast(e instanceof Error ? e.message : 'عملیات با خطا مواجه شد', 'danger');
+      showToast(e instanceof Error ? e.message : '\u0639\u0645\u0644\u06cc\u0627\u062a \u0628\u0627 \u062e\u0637\u0627 \u0645\u0648\u0627\u062c\u0647 \u0634\u062f', 'danger');
     } finally {
       setSaving(false);
     }
@@ -208,11 +211,11 @@ export const PricesPage: React.FC = () => {
     setSaving(true);
     try {
       await pricesService.remove(gymId, deleting.id);
-      showToast('قیمت با موفقیت حذف شد', 'success');
+      showToast('\u0642\u06cc\u0645\u062a \u0628\u0627 \u0645\u0648\u0641\u0642\u06cc\u062a \u062d\u0630\u0641 \u0634\u062f', 'success');
       setDeleting(null);
       await load();
     } catch (e: unknown) {
-      showToast(e instanceof Error ? e.message : 'عملیات با خطا مواجه شد', 'danger');
+      showToast(e instanceof Error ? e.message : '\u0639\u0645\u0644\u06cc\u0627\u062a \u0628\u0627 \u062e\u0637\u0627 \u0645\u0648\u0627\u062c\u0647 \u0634\u062f', 'danger');
     } finally {
       setSaving(false);
     }
@@ -221,7 +224,7 @@ export const PricesPage: React.FC = () => {
   const columns: Column<GymPrice>[] = [
     {
       key: 'sport_name',
-      header: 'رشته',
+      header: '\u0631\u0634\u062a\u0647',
       render: (r) => (
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-primary-soft border border-border flex items-center justify-center shrink-0">
@@ -233,39 +236,39 @@ export const PricesPage: React.FC = () => {
     },
     {
       key: 'session_price',
-      header: 'تک‌جلسه',
+      header: '\u062a\u06a9\u200c\u062c\u0644\u0633\u0647',
       render: (r) => <span className="text-sm tabular-nums text-muted">{formatMoney(r.session_price)}</span>,
     },
     {
       key: 'monthly_price',
-      header: 'ماهانه',
+      header: '\u0645\u0627\u0647\u0627\u0646\u0647',
       render: (r) => <span className="text-sm tabular-nums text-ink font-medium">{formatMoney(r.monthly_price)}</span>,
     },
     {
       key: 'quarterly_price',
-      header: 'سه‌ماهه',
+      header: '\u0633\u0647\u200c\u0645\u0627\u0647\u0647',
       render: (r) => <span className="text-sm tabular-nums text-muted">{formatMoney(r.quarterly_price)}</span>,
     },
     {
       key: 'yearly_price',
-      header: 'سالانه',
+      header: '\u0633\u0627\u0644\u0627\u0646\u0647',
       render: (r) => <span className="text-sm tabular-nums text-ink">{formatMoney(r.yearly_price)}</span>,
     },
     {
       key: 'actions',
-      header: 'عملیات',
+      header: '\u0639\u0645\u0644\u06cc\u0627\u062a',
       className: 'w-28',
       render: (r) => (
         <div className="flex items-center gap-1">
-          <button type="button" onClick={() => openDetail(r)} className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-surface-hover" aria-label="جزئیات" title="جزئیات">
+          <button type="button" onClick={() => openDetail(r)} className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-surface-hover" aria-label="\u062c\u0632\u0626\u06cc\u0627\u062a" title="\u062c\u0632\u0626\u06cc\u0627\u062a">
             <Eye className="w-4 h-4" />
           </button>
           {canManage && (
             <>
-              <button type="button" onClick={() => openEdit(r)} className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-primary-soft" aria-label="ویرایش" title="ویرایش">
+              <button type="button" onClick={() => openEdit(r)} className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-primary-soft" aria-label="\u0648\u06cc\u0631\u0627\u06cc\u0634" title="\u0648\u06cc\u0631\u0627\u06cc\u0634">
                 <Edit3 className="w-4 h-4" />
               </button>
-              <button type="button" onClick={() => setDeleting(r)} className="p-1.5 rounded-lg text-muted hover:text-danger-text hover:bg-danger-soft" aria-label="حذف" title="حذف">
+              <button type="button" onClick={() => setDeleting(r)} className="p-1.5 rounded-lg text-muted hover:text-danger-text hover:bg-danger-soft" aria-label="\u062d\u0630\u0641" title="\u062d\u0630\u0641">
                 <Trash2 className="w-4 h-4" />
               </button>
             </>
@@ -279,8 +282,8 @@ export const PricesPage: React.FC = () => {
   if (!canManage) {
     return (
       <div className="space-y-4">
-        <Header title="قیمت‌ها" subtitle="تعرفه رشته‌های باشگاه" />
-        <ErrorBlock message="شما دسترسی مدیریت قیمت‌ها را ندارید." />
+        <Header title="\u0642\u06cc\u0645\u062a\u200c\u0647\u0627" subtitle="\u062a\u0639\u0631\u0641\u0647 \u0631\u0634\u062a\u0647\u200c\u0647\u0627\u06cc \u0628\u0627\u0634\u06af\u0627\u0647" />
+        <ErrorBlock message="\u0634\u0645\u0627 \u062f\u0633\u062a\u0631\u0633\u06cc \u0645\u062f\u06cc\u0631\u06cc\u062a \u0642\u06cc\u0645\u062a\u200c\u0647\u0627 \u0631\u0627 \u0646\u062f\u0627\u0631\u06cc\u062f." />
       </div>
     );
   }
@@ -288,17 +291,17 @@ export const PricesPage: React.FC = () => {
   return (
     <div className="space-y-4">
       <Header
-        title="قیمت‌ها"
-        subtitle="تعرفه تک‌جلسه، ماهانه، سه‌ماهه و سالانه هر رشته"
+        title="\u0642\u06cc\u0645\u062a\u200c\u0647\u0627"
+        subtitle="\u062a\u0639\u0631\u0641\u0647 \u062a\u06a9\u200c\u062c\u0644\u0633\u0647\u060c \u0645\u0627\u0647\u0627\u0646\u0647\u060c \u0633\u0647\u200c\u0645\u0627\u0647\u0647 \u0648 \u0633\u0627\u0644\u0627\u0646\u0647 \u0647\u0631 \u0631\u0634\u062a\u0647"
         actions={
           <div className="flex items-center gap-2">
             <button type="button" onClick={load} disabled={loading} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl border border-border text-secondary hover:bg-surface-hover">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              بروزرسانی
+              \u0628\u0631\u0648\u0632\u0631\u0633\u0627\u0646\u06cc
             </button>
             <button type="button" onClick={openCreate} className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl bg-primary text-primary-fg font-bold">
               <Plus className="w-4 h-4" />
-              قیمت جدید
+              \u0642\u06cc\u0645\u062a \u062c\u062f\u06cc\u062f
             </button>
           </div>
         }
@@ -309,15 +312,23 @@ export const PricesPage: React.FC = () => {
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="جستجو بر اساس نام رشته..."
+          placeholder="\u062c\u0633\u062a\u062c\u0648 \u0628\u0631 \u0627\u0633\u0627\u0633 \u0646\u0627\u0645 \u0631\u0634\u062a\u0647..."
           className="flex-1 min-w-[180px] rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
         />
-        <select value={sportFilter} onChange={(e) => setSportFilter(e.target.value)} className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink">
-          <option value="all">همه رشته‌ها</option>
-          {sports.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
+        <FilterPopover
+          activeCount={activeFilterCount}
+          onClear={clearFilters}
+          fields={[{
+            key: 'sport',
+            label: '\u0631\u0634\u062a\u0647 \u0648\u0631\u0632\u0634\u06cc',
+            value: sportFilter,
+            onChange: setSportFilter,
+            options: [
+              { value: 'all', label: '\u0647\u0645\u0647 \u0631\u0634\u062a\u0647\u200c\u0647\u0627' },
+              ...sports.map((s) => ({ value: String(s.id), label: s.name })),
+            ],
+          }]}
+        />
       </div>
 
       {error && <ErrorBlock message={error} onRetry={load} />}
@@ -325,13 +336,13 @@ export const PricesPage: React.FC = () => {
         <LoadingBlock />
       ) : !error && filtered.length === 0 ? (
         <EmptyState
-          title="قیمتی ثبت نشده است"
-          description={items.length ? 'با فیلتر فعلی نتیجه‌ای نیست.' : 'برای هر رشته یک تعرفه تعریف کنید.'}
+          title="\u0642\u06cc\u0645\u062a\u06cc \u062b\u0628\u062a \u0646\u0634\u062f\u0647 \u0627\u0633\u062a"
+          description={items.length ? '\u0628\u0627 \u0641\u06cc\u0644\u062a\u0631 \u0641\u0639\u0644\u06cc \u0646\u062a\u06cc\u062c\u0647\u200c\u0627\u06cc \u0646\u06cc\u0633\u062a.' : '\u0628\u0631\u0627\u06cc \u0647\u0631 \u0631\u0634\u062a\u0647 \u06cc\u06a9 \u062a\u0639\u0631\u0641\u0647 \u062a\u0639\u0631\u06cc\u0641 \u06a9\u0646\u06cc\u062f.'}
           action={
             !items.length ? (
               <button type="button" onClick={openCreate} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-xl bg-primary text-primary-fg font-bold">
                 <Plus className="w-4 h-4" />
-                ثبت اولین قیمت
+                \u062b\u0628\u062a \u0627\u0648\u0644\u06cc\u0646 \u0642\u06cc\u0645\u062a
               </button>
             ) : undefined
           }
@@ -340,52 +351,52 @@ export const PricesPage: React.FC = () => {
         <DataTable columns={columns} data={filtered} rowKey={(r) => r.id} loading={loading} />
       )}
 
-      <Modal isOpen={open} onClose={() => setOpen(false)} title={editing ? 'ویرایش قیمت' : 'قیمت جدید'}>
+      <Modal isOpen={open} onClose={() => setOpen(false)} title={editing ? '\u0648\u06cc\u0631\u0627\u06cc\u0634 \u0642\u06cc\u0645\u062a' : '\u0642\u06cc\u0645\u062a \u062c\u062f\u06cc\u062f'}>
         <div className="space-y-3">
           {editing ? (
             <div className="space-y-1">
-              <p className="text-[11px] font-medium text-muted">رشته ورزشی</p>
+              <p className="text-[11px] font-medium text-muted">\u0631\u0634\u062a\u0647 \u0648\u0631\u0632\u0634\u06cc</p>
               <div className="rounded-xl border border-border bg-surface-elevated px-3.5 py-2.5 text-sm font-medium text-ink">
                 {resolveSport(editing)}
               </div>
             </div>
           ) : (
             <FormField
-              label="رشته ورزشی"
+              label="\u0631\u0634\u062a\u0647 \u0648\u0631\u0632\u0634\u06cc"
               required
               isSelect
               value={form.sport}
               error={formErrors.sport}
               options={[
-                { value: '', label: availableSportsForCreate.length ? 'انتخاب رشته' : 'همه رشته‌ها قیمت دارند' },
+                { value: '', label: availableSportsForCreate.length ? '\u0627\u0646\u062a\u062e\u0627\u0628 \u0631\u0634\u062a\u0647' : '\u0647\u0645\u0647 \u0631\u0634\u062a\u0647\u200c\u0647\u0627 \u0642\u06cc\u0645\u062a \u062f\u0627\u0631\u0646\u062f' },
                 ...availableSportsForCreate.map((s) => ({ value: String(s.id), label: s.name })),
               ]}
               onChange={(e) => setForm({ ...form, sport: e.target.value })}
-              helpText={!availableSportsForCreate.length ? 'برای همه رشته‌های فعلی تعرفه ثبت شده است.' : undefined}
+              helpText={!availableSportsForCreate.length ? '\u0628\u0631\u0627\u06cc \u0647\u0645\u0647 \u0631\u0634\u062a\u0647\u200c\u0647\u0627\u06cc \u0641\u0639\u0644\u06cc \u062a\u0639\u0631\u0641\u0647 \u062b\u0628\u062a \u0634\u062f\u0647 \u0627\u0633\u062a.' : undefined}
             />
           )}
-          <FormField label="قیمت تک‌جلسه (تومان)" type="number" min={0} value={form.session_price} onChange={(e) => setForm({ ...form, session_price: e.target.value })} />
-          <FormField label="قیمت ماهانه (تومان)" required type="number" min={0} value={form.monthly_price} error={formErrors.monthly_price} onChange={(e) => setForm({ ...form, monthly_price: e.target.value })} />
-          <FormField label="قیمت سه‌ماهه (تومان)" type="number" min={0} value={form.quarterly_price} onChange={(e) => setForm({ ...form, quarterly_price: e.target.value })} />
-          <FormField label="قیمت سالانه (تومان)" required type="number" min={0} value={form.yearly_price} error={formErrors.yearly_price} onChange={(e) => setForm({ ...form, yearly_price: e.target.value })} />
+          <FormField label="\u0642\u06cc\u0645\u062a \u062a\u06a9\u200c\u062c\u0644\u0633\u0647 (\u062a\u0648\u0645\u0627\u0646)" type="number" min={0} value={form.session_price} onChange={(e) => setForm({ ...form, session_price: e.target.value })} />
+          <FormField label="\u0642\u06cc\u0645\u062a \u0645\u0627\u0647\u0627\u0646\u0647 (\u062a\u0648\u0645\u0627\u0646)" required type="number" min={0} value={form.monthly_price} error={formErrors.monthly_price} onChange={(e) => setForm({ ...form, monthly_price: e.target.value })} />
+          <FormField label="\u0642\u06cc\u0645\u062a \u0633\u0647\u200c\u0645\u0627\u0647\u0647 (\u062a\u0648\u0645\u0627\u0646)" type="number" min={0} value={form.quarterly_price} onChange={(e) => setForm({ ...form, quarterly_price: e.target.value })} />
+          <FormField label="\u0642\u06cc\u0645\u062a \u0633\u0627\u0644\u0627\u0646\u0647 (\u062a\u0648\u0645\u0627\u0646)" required type="number" min={0} value={form.yearly_price} error={formErrors.yearly_price} onChange={(e) => setForm({ ...form, yearly_price: e.target.value })} />
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" disabled={saving} onClick={() => setOpen(false)} className="px-4 py-2 text-sm rounded-lg text-muted hover:bg-surface-hover">انصراف</button>
+            <button type="button" disabled={saving} onClick={() => setOpen(false)} className="px-4 py-2 text-sm rounded-lg text-muted hover:bg-surface-hover">\u0627\u0646\u0635\u0631\u0627\u0641</button>
             <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-fg font-bold disabled:opacity-50">
-              {saving ? 'در حال ذخیره...' : 'ذخیره'}
+              {saving ? '\u062f\u0631 \u062d\u0627\u0644 \u0630\u062e\u06cc\u0631\u0647...' : '\u0630\u062e\u06cc\u0631\u0647'}
             </button>
           </div>
         </div>
       </Modal>
 
-      <Modal isOpen={!!detail} onClose={() => setDetail(null)} title="جزئیات تعرفه">
+      <Modal isOpen={!!detail} onClose={() => setDetail(null)} title="\u062c\u0632\u0626\u06cc\u0627\u062a \u062a\u0639\u0631\u0641\u0647">
         {detailLoading && <LoadingBlock />}
         {detail && !detailLoading && (
           <div className="space-y-3 text-sm">
-            <DetailRow label="رشته" value={resolveSport(detail)} />
-            <DetailRow label="تک‌جلسه" value={formatMoney(detail.session_price)} />
-            <DetailRow label="ماهانه" value={formatMoney(detail.monthly_price)} />
-            <DetailRow label="سه‌ماهه" value={formatMoney(detail.quarterly_price)} />
-            <DetailRow label="سالانه" value={formatMoney(detail.yearly_price)} />
+            <DetailRow label="\u0631\u0634\u062a\u0647" value={resolveSport(detail)} />
+            <DetailRow label="\u062a\u06a9\u200c\u062c\u0644\u0633\u0647" value={formatMoney(detail.session_price)} />
+            <DetailRow label="\u0645\u0627\u0647\u0627\u0646\u0647" value={formatMoney(detail.monthly_price)} />
+            <DetailRow label="\u0633\u0647\u200c\u0645\u0627\u0647\u0647" value={formatMoney(detail.quarterly_price)} />
+            <DetailRow label="\u0633\u0627\u0644\u0627\u0646\u0647" value={formatMoney(detail.yearly_price)} />
           </div>
         )}
       </Modal>
@@ -394,7 +405,7 @@ export const PricesPage: React.FC = () => {
         isOpen={!!deleting}
         onClose={() => setDeleting(null)}
         onConfirm={handleDelete}
-        title="حذف قیمت"
+        title="\u062d\u0630\u0641 \u0642\u06cc\u0645\u062a"
         itemName={deleting ? resolveSport(deleting) : ''}
       />
     </div>
