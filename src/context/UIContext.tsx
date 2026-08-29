@@ -1,7 +1,11 @@
-import React, { createContext, useCallback, useContext, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 export type ToastType = 'success' | 'danger' | 'info' | 'warning';
-interface ToastMessage { id: number; message: string; type: ToastType; }
+interface ToastMessage {
+  id: number;
+  message: string;
+  type: ToastType;
+}
 interface UIContextType {
   toast: ToastMessage | null;
   showToast: (message: string, type?: ToastType) => void;
@@ -26,10 +30,34 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({ children }
   const toggleMobileMenu = useCallback(() => setIsMobileMenuOpen((v) => !v), []);
   const closeMobileMenu = useCallback(() => setIsMobileMenuOpen(false), []);
 
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isMobileMenuOpen]);
+
+  useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth >= 1024) setIsMobileMenuOpen(false);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   return (
-    <UIContext.Provider value={{
-      toast, showToast, clearToast, isMobileMenuOpen, toggleMobileMenu, closeMobileMenu,
-    }}>
+    <UIContext.Provider
+      value={{
+        toast,
+        showToast,
+        clearToast,
+        isMobileMenuOpen,
+        toggleMobileMenu,
+        closeMobileMenu,
+      }}
+    >
       {children}
     </UIContext.Provider>
   );
