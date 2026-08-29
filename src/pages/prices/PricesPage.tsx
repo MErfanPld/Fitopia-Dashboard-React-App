@@ -3,74 +3,112 @@ import { Plus, Edit3, Trash2, RefreshCw, Eye, Tag } from 'lucide-react';
 import { Header } from '../../components/common/Header';
 import { DataTable, Column } from '../../components/common/DataTable';
 import { Modal } from '../../components/common/Modal';
-import { ConfirmDialog } from '../../components/common/ConfirmDialog';
-import { EmptyState } from '../../components/common/EmptyState';
-import { ErrorBlock } from '../../components/common/ErrorBlock';
 import { FormField } from '../../components/common/FormField';
+import { ConfirmDeleteModal } from '../../components/common/ConfirmDeleteModal';
+import { EmptyState, ErrorBlock, LoadingBlock, NoGymSelected } from '../../components/common/EmptyState';
 import { FilterPopover } from '../../components/common/FilterPopover';
-import { useAuth } from '../../context/AuthContext';
-import { useToast } from '../../components/ui/Toast';
-import { pricesService } from '../../services/pricesService';
-import { offeringsService } from '../../services/offeringsService';
-import type { Price, PriceWrite } from '../../types/price';
-import type { Offering } from '../../types/offering';
+import { useGymScoped } from '../../hooks/useGymScoped';
+import { useUI } from '../../context/UIContext';
+import pricesService from '../../services/prices/pricesService';
+import sportsService from '../../services/sports/sportsService';
+import type { GymPrice, Sport, GymPriceInput } from '../../types/api';
 
-const emptyForm: PriceWrite = {
-  sport: 0,
-  single_session_price: '',
+function formatMoney(n?: number | null) {
+  if (n == null || Number.isNaN(Number(n))) return '—';
+  return `${Number(n).toLocaleString('fa-IR')} تومان`;
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between gap-3 p-3 rounded-xl bg-surface-elevated border border-border">
+      <span className="text-muted shrink-0">{label}</span>
+      <span className="text-ink font-medium text-left tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+type FormState = {
+  sport: string;
+  session_price: string;
+  monthly_price: string;
+  quarterly_price: string;
+  yearly_price: string;
+};
+
+const emptyForm = (): FormState => ({
+  sport: '',
+  session_price: '',
   monthly_price: '',
   quarterly_price: '',
   yearly_price: '',
-};
+});
 
-function formatPrice(v: string | number | null | undefined): string {
-  if (v === null || v === undefined || v === '') return '—';
-  const n = typeof v === 'string' ? Number(v) : v;
-  if (Number.isNaN(n)) return String(v);
-  return n.toLocaleString('fa-IR') + ' تومان';
+function priceToForm(p: GymPrice): FormState {
+  return {
+    sport: p.sport != null ? String(p.sport) : '',
+    session_price: p.session_price != null ? String(p.session_price) : '',
+    monthly_price: p.monthly_price != null ? String(p.monthly_price) : '',
+    quarterly_price: p.quarterly_price != null ? String(p.quarterly_price) : '',
+    yearly_price: p.yearly_price != null ? String(p.yearly_price) : '',
+  };
+}
+
+function formToPayload(form: FormState): GymPriceInput {
+  const num = (s: string) => (s.trim() === '' ? null : Number(s));
+  return {
+    sport: form.sport ? Number(form.sport) : 0,
+    session_price: num(form.session_price),
+    monthly_price: num(form.monthly_price) ?? 0,
+    quarterly_price: num(form.quarterly_price),
+    yearly_price: num(form.yearly_price) ?? 0,
+  };
 }
 
 export const PricesPage: React.FC = () => {
-  const { activeGymId, hasPermission } = useAuth();
-  const { showToast } = useToast();
-  const can = (p: string) => hasPermission(p);
+  const { gymId } = useGymScoped();
+  const { showToast } = useUI();
 
-  const [items, setItems] = useState<Price[]>([]);
-  const [sports, setSports] = useState<Offering[]>([]);
+  const [items, setItems] = useState<GymPrice[]>([]);
+  const [sports, setSports] = useState<Sport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Price | null>(null);
-  const [detail, setDetail] = useState<Price | null>(null);
-  const [deleting, setDeleting] = useState<Price | null>(null);
-  const [form, setForm] = useState<PriceWrite>(emptyForm);
+  const [editing, setEditing] = useState<GymPrice | null>(null);
+  const [detail, setDetail] = useState<GymPrice | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [deleting, setDeleting] = useState<GymPrice | null>(null);
+  const [form, setForm] = useState<FormState>(emptyForm());
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [sportFilter, setSportFilter] = useState('');
 
   const load = useCallback(async () => {
-    if (!activeGymId) return;
+    if (!gymId) return;
     setLoading(true);
     setError(null);
     try {
-      const [pricesRes, sportsRes] = await Promise.all([
-        pricesService.list(activeGymId),
-        offeringsService.list(activeGymId),
+      const [prices, sportList] = await Promise.all([
+        pricesService.list(gymId),
+        sportsService.list(),
       ]);
-      setItems(Array.isArray(pricesRes) ? pricesRes : (pricesRes as { results?: Price[] }).results || []);
-      setSports(Array.isArray(sportsRes) ? sportsRes : (sportsRes as { results?: Offering[] }).results || []);
-    } catch (e) {
+      setItems(prices);
+      setSports(sportList);
+    } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'خطا در دریافت داده‌ها');
     } finally {
       setLoading(false);
     }
-  }, [activeGymId]);
+  }, [gymId]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const sportName = (id: number) => sports.find((s) => s.id === id)?.title || sports.find((s) => s.id === id)?.name || `#${id}`;
+  const resolveSport = (p: GymPrice) => {
+    if (p.sport_name) return p.sport_name;
+    const s = sports.find((x) => x.id === p.sport);
+    return s?.name || (p.sport != null ? `#${p.sport}` : '—');
+  };
 
   const filtered = useMemo(() => {
     if (!sportFilter) return items;
@@ -84,128 +122,127 @@ export const PricesPage: React.FC = () => {
 
   const openCreate = () => {
     setEditing(null);
-    setForm(emptyForm);
+    setForm(emptyForm());
     setFormErrors({});
     setOpen(true);
   };
 
-  const openEdit = (r: Price) => {
+  const openEdit = (r: GymPrice) => {
     setEditing(r);
-    setForm({
-      sport: r.sport,
-      single_session_price: String(r.single_session_price ?? ''),
-      monthly_price: String(r.monthly_price ?? ''),
-      quarterly_price: String(r.quarterly_price ?? ''),
-      yearly_price: String(r.yearly_price ?? ''),
-    });
+    setForm(priceToForm(r));
     setFormErrors({});
     setOpen(true);
   };
 
-  const openDetail = (r: Price) => setDetail(r);
+  const openDetail = async (r: GymPrice) => {
+    if (!gymId) return;
+    setDetail(r);
+    setDetailLoading(true);
+    try {
+      const full = await pricesService.retrieve(gymId, r.id);
+      setDetail(full);
+    } catch {
+      /* keep list row */
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
-    if (!form.sport) errs.sport = 'انتخاب رشته الزامی است';
-    if (!form.monthly_price && form.monthly_price !== '0') errs.monthly_price = 'قیمت ماهانه الزامی است';
-    if (!form.yearly_price && form.yearly_price !== '0') errs.yearly_price = 'قیمت سالانه الزامی است';
+    if (!editing && !form.sport) errs.sport = 'انتخاب رشته الزامی است';
+    if (form.monthly_price.trim() === '') errs.monthly_price = 'قیمت ماهانه الزامی است';
+    if (form.yearly_price.trim() === '') errs.yearly_price = 'قیمت سالانه الزامی است';
     setFormErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
   const handleSave = async () => {
-    if (!activeGymId || !validate()) return;
+    if (!gymId || !validate()) return;
     setSaving(true);
     try {
-      const payload: PriceWrite = {
-        sport: Number(form.sport),
-        single_session_price: form.single_session_price || '0',
-        monthly_price: form.monthly_price || '0',
-        quarterly_price: form.quarterly_price || '0',
-        yearly_price: form.yearly_price || '0',
-      };
+      const payload = formToPayload(form);
       if (editing) {
-        await pricesService.update(activeGymId, editing.id, payload);
-        showToast('قیمت با موفقیت ویرایش شد');
+        await pricesService.update(gymId, editing.id, payload);
+        showToast('قیمت با موفقیت ویرایش شد', 'success');
       } else {
-        await pricesService.create(activeGymId, payload);
-        showToast('قیمت با موفقیت ثبت شد');
+        await pricesService.create(gymId, payload);
+        showToast('قیمت با موفقیت ثبت شد', 'success');
       }
       setOpen(false);
-      load();
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : 'خطا در ذخیره‌سازی', 'error');
+      await load();
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'عملیات با خطا مواجه شد', 'danger');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!activeGymId || !deleting) return;
+    if (!gymId || !deleting) return;
+    setSaving(true);
     try {
-      await pricesService.remove(activeGymId, deleting.id);
-      showToast('قیمت با موفقیت حذف شد');
+      await pricesService.remove(gymId, deleting.id);
+      showToast('قیمت با موفقیت حذف شد', 'success');
       setDeleting(null);
-      load();
-    } catch (e) {
-      showToast(e instanceof Error ? e.message : 'خطا در حذف', 'error');
+      await load();
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : 'عملیات با خطا مواجه شد', 'danger');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const columns: Column<Price>[] = [
+  const columns: Column<GymPrice>[] = [
     {
       key: 'sport',
       header: 'رشته',
-      render: (r) => <span className="font-medium text-ink">{sportName(r.sport)}</span>,
+      render: (r) => <span className="font-medium text-ink">{resolveSport(r)}</span>,
     },
     {
-      key: 'single_session_price',
+      key: 'session_price',
       header: 'تک‌جلسه',
-      render: (r) => formatPrice(r.single_session_price),
+      render: (r) => formatMoney(r.session_price),
     },
     {
       key: 'monthly_price',
       header: 'ماهانه',
-      render: (r) => formatPrice(r.monthly_price),
+      render: (r) => formatMoney(r.monthly_price),
     },
     {
       key: 'quarterly_price',
       header: 'سه‌ماهه',
-      render: (r) => formatPrice(r.quarterly_price),
+      render: (r) => formatMoney(r.quarterly_price),
     },
     {
       key: 'yearly_price',
       header: 'سالانه',
-      render: (r) => formatPrice(r.yearly_price),
+      render: (r) => formatMoney(r.yearly_price),
     },
     {
       key: 'actions',
       header: 'عملیات',
       render: (r) => (
         <div className="flex items-center gap-1">
-          <button type="button" onClick={() => openDetail(r)} className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-surface-hover" aria-label="جزئیات">
+          <button type="button" onClick={() => openDetail(r)} className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-surface-hover" aria-label="جزئیات" title="جزئیات">
             <Eye className="w-4 h-4" />
           </button>
-          {can('price.update') && (
-            <>
-              <button type="button" onClick={() => openEdit(r)} className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-primary-soft" aria-label="ویرایش">
-                <Edit3 className="w-4 h-4" />
-              </button>
-              <button type="button" onClick={() => setDeleting(r)} className="p-1.5 rounded-lg text-muted hover:text-danger-text hover:bg-danger-soft" aria-label="حذف">
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </>
-          )}
+          <button type="button" onClick={() => openEdit(r)} className="p-1.5 rounded-lg text-muted hover:text-primary hover:bg-primary-soft" aria-label="ویرایش" title="ویرایش">
+            <Edit3 className="w-4 h-4" />
+          </button>
+          <button type="button" onClick={() => setDeleting(r)} className="p-1.5 rounded-lg text-muted hover:text-danger-text hover:bg-danger-soft" aria-label="حذف" title="حذف">
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       ),
     },
   ];
 
-  if (!activeGymId) {
+  if (!gymId) {
     return (
       <div className="p-6">
         <Header title="قیمت‌ها" subtitle="تعرفه رشته‌های باشگاه" />
-        <ErrorBlock message="شما دسترسی مدیریتی به باشگاهی ندارید." />
+        <NoGymSelected />
       </div>
     );
   }
@@ -225,16 +262,15 @@ export const PricesPage: React.FC = () => {
               <RefreshCw className="w-4 h-4" />
               بروزرسانی
             </button>
-            {can('price.create') && (
-              <button
-                type="button"
-                onClick={openCreate}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white hover:bg-primary-hover text-sm font-medium"
-              >
-                <Plus className="w-4 h-4" />
-                قیمت جدید
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={openCreate}
+              disabled={!availableSportsForCreate.length}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-fg hover:opacity-90 text-sm font-medium disabled:opacity-50"
+            >
+              <Plus className="w-4 h-4" />
+              قیمت جدید
+            </button>
           </div>
         }
       />
@@ -251,7 +287,7 @@ export const PricesPage: React.FC = () => {
               onChange: setSportFilter,
               options: [
                 { value: '', label: 'همه' },
-                ...sports.map((s) => ({ value: String(s.id), label: s.title || s.name || `#${s.id}` })),
+                ...sports.map((s) => ({ value: String(s.id), label: s.name })),
               ],
             },
           ]}
@@ -260,14 +296,16 @@ export const PricesPage: React.FC = () => {
         />
       </div>
 
-      {!loading && !error && filtered.length === 0 ? (
+      {loading ? (
+        <LoadingBlock />
+      ) : !error && filtered.length === 0 ? (
         <EmptyState
           icon={<Tag className="w-10 h-10" />}
           title="قیمتی ثبت نشده است"
           description={items.length ? 'با فیلتر فعلی نتیجه‌ای نیست.' : 'برای هر رشته یک تعرفه تعریف کنید.'}
           action={
-            can('price.create') && !items.length ? (
-              <button type="button" onClick={openCreate} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-sm">
+            !items.length ? (
+              <button type="button" onClick={openCreate} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-fg text-sm">
                 <Plus className="w-4 h-4" />
                 ثبت اولین قیمت
               </button>
@@ -275,34 +313,35 @@ export const PricesPage: React.FC = () => {
           }
         />
       ) : (
-        <DataTable columns={columns} data={filtered} loading={loading} rowKey={(r) => r.id} />
+        <DataTable columns={columns} data={filtered} loading={false} rowKey={(r) => r.id} />
       )}
 
       <Modal isOpen={open} onClose={() => setOpen(false)} title={editing ? 'ویرایش قیمت' : 'قیمت جدید'}>
         <div className="space-y-4">
-          <FormField
-            label="رشته"
-            error={formErrors.sport}
-            as="select"
-            value={String(form.sport || '')}
-            onChange={(e) => setForm((f) => ({ ...f, sport: Number(e.target.value) }))}
-            disabled={!!editing}
-            options={[
-              { value: '', label: availableSportsForCreate.length ? 'انتخاب رشته' : 'همه رشته‌ها تعرفه دارند' },
-              ...(editing
-                ? sports.filter((s) => s.id === form.sport).map((s) => ({ value: String(s.id), label: s.title || s.name || `#${s.id}` }))
-                : availableSportsForCreate.map((s) => ({ value: String(s.id), label: s.title || s.name || `#${s.id}` }))),
-            ]}
-          />
-          <FormField label="قیمت تک‌جلسه (تومان)" error={formErrors.single_session_price} type="number" value={form.single_session_price} onChange={(e) => setForm((f) => ({ ...f, single_session_price: e.target.value }))} />
-          <FormField label="قیمت ماهانه (تومان)" error={formErrors.monthly_price} type="number" value={form.monthly_price} onChange={(e) => setForm((f) => ({ ...f, monthly_price: e.target.value }))} />
-          <FormField label="قیمت سه‌ماهه (تومان)" error={formErrors.quarterly_price} type="number" value={form.quarterly_price} onChange={(e) => setForm((f) => ({ ...f, quarterly_price: e.target.value }))} />
-          <FormField label="قیمت سالانه (تومان)" error={formErrors.yearly_price} type="number" value={form.yearly_price} onChange={(e) => setForm((f) => ({ ...f, yearly_price: e.target.value }))} />
+          {editing ? (
+            <FormField label="رشته" value={resolveSport(editing)} disabled />
+          ) : (
+            <FormField
+              label="رشته"
+              required
+              as="select"
+              value={form.sport}
+              error={formErrors.sport}
+              options={[
+                { value: '', label: availableSportsForCreate.length ? 'انتخاب رشته' : 'همه رشته‌ها تعرفه دارند' },
+                ...availableSportsForCreate.map((s) => ({ value: String(s.id), label: s.name })),
+              ]}
+              onChange={(e) => setForm({ ...form, sport: e.target.value })}
+              helpText={!availableSportsForCreate.length ? 'برای همه رشته‌های فعلی تعرفه ثبت شده است.' : undefined}
+            />
+          )}
+          <FormField label="قیمت تک‌جلسه (تومان)" type="number" min={0} value={form.session_price} onChange={(e) => setForm({ ...form, session_price: e.target.value })} />
+          <FormField label="قیمت ماهانه (تومان)" required type="number" min={0} value={form.monthly_price} error={formErrors.monthly_price} onChange={(e) => setForm({ ...form, monthly_price: e.target.value })} />
+          <FormField label="قیمت سه‌ماهه (تومان)" type="number" min={0} value={form.quarterly_price} onChange={(e) => setForm({ ...form, quarterly_price: e.target.value })} />
+          <FormField label="قیمت سالانه (تومان)" required type="number" min={0} value={form.yearly_price} error={formErrors.yearly_price} onChange={(e) => setForm({ ...form, yearly_price: e.target.value })} />
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl border border-border text-ink hover:bg-surface-hover text-sm">
-              انصراف
-            </button>
-            <button type="button" onClick={handleSave} disabled={saving} className="px-4 py-2 rounded-xl bg-primary text-white hover:bg-primary-hover text-sm font-medium disabled:opacity-50">
+            <button type="button" disabled={saving} onClick={() => setOpen(false)} className="px-4 py-2 text-sm rounded-lg text-muted hover:bg-surface-hover">انصراف</button>
+            <button type="button" disabled={saving} onClick={handleSave} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-fg font-bold disabled:opacity-50">
               {saving ? 'در حال ذخیره...' : 'ذخیره'}
             </button>
           </div>
@@ -310,23 +349,24 @@ export const PricesPage: React.FC = () => {
       </Modal>
 
       <Modal isOpen={!!detail} onClose={() => setDetail(null)} title="جزئیات تعرفه">
-        {detail && (
+        {detailLoading && <LoadingBlock />}
+        {detail && !detailLoading && (
           <div className="space-y-3 text-sm">
-            <div className="flex justify-between"><span className="text-muted">رشته</span><span className="font-medium">{sportName(detail.sport)}</span></div>
-            <div className="flex justify-between"><span className="text-muted">تک‌جلسه</span><span>{formatPrice(detail.single_session_price)}</span></div>
-            <div className="flex justify-between"><span className="text-muted">ماهانه</span><span>{formatPrice(detail.monthly_price)}</span></div>
-            <div className="flex justify-between"><span className="text-muted">سه‌ماهه</span><span>{formatPrice(detail.quarterly_price)}</span></div>
-            <div className="flex justify-between"><span className="text-muted">سالانه</span><span>{formatPrice(detail.yearly_price)}</span></div>
+            <DetailRow label="رشته" value={resolveSport(detail)} />
+            <DetailRow label="تک‌جلسه" value={formatMoney(detail.session_price)} />
+            <DetailRow label="ماهانه" value={formatMoney(detail.monthly_price)} />
+            <DetailRow label="سه‌ماهه" value={formatMoney(detail.quarterly_price)} />
+            <DetailRow label="سالانه" value={formatMoney(detail.yearly_price)} />
           </div>
         )}
       </Modal>
 
-      <ConfirmDialog
-        open={!!deleting}
+      <ConfirmDeleteModal
+        isOpen={!!deleting}
         onClose={() => setDeleting(null)}
         onConfirm={handleDelete}
         title="حذف قیمت"
-        description={deleting ? `آیا از حذف تعرفه «${sportName(deleting.sport)}» مطمئن هستید؟` : ''}
+        itemName={deleting ? resolveSport(deleting) : ''}
       />
     </div>
   );
