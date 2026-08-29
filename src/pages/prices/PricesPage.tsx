@@ -89,7 +89,7 @@ export const PricesPage: React.FC = () => {
     try {
       const [prices, sportList] = await Promise.all([
         pricesService.list(gymId),
-        sportsService.list(),
+        sportsService.listSports(),
       ]);
       setItems(prices);
       setSports(sportList);
