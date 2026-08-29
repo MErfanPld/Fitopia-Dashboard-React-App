@@ -43,9 +43,11 @@ const ACTION_LABELS: Record<string, string> = {
   'single_session.create': 'ثبت جلسه تکی',
   'single_session.update': 'ویرایش جلسه تکی',
   'single_session.delete': 'حذف جلسه تکی',
+  'single_session.purchase': 'خرید جلسه تکی',
   'singlesession.create': 'ثبت جلسه تکی',
   'singlesession.update': 'ویرایش جلسه تکی',
   'singlesession.delete': 'حذف جلسه تکی',
+  'singlesession.purchase': 'خرید جلسه تکی',
   'session.create': 'ثبت جلسه',
   'session.update': 'ویرایش جلسه',
   'session.delete': 'حذف جلسه',
@@ -54,6 +56,12 @@ const ACTION_LABELS: Record<string, string> = {
   'ticket.reply': 'پاسخ تیکت',
   'gym.update': 'ویرایش باشگاه',
   'settings.update': 'ویرایش تنظیمات',
+  // plain / spaced variants that sometimes come from backend
+  'single session': 'جلسه تکی',
+  'single_session': 'جلسه تکی',
+  singlesession: 'جلسه تکی',
+  'create single session': 'ثبت جلسه تکی',
+  'create_single_session': 'ثبت جلسه تکی',
   login: 'ورود',
   logout: 'خروج',
 };
@@ -115,10 +123,15 @@ const OBJECT_TYPE_LABELS: Record<string, string> = {
 function actionLabel(action?: string | null) {
   if (!action) return '—';
   const raw = String(action).trim();
+  // normalize: spaces/dashes → underscore, lower
   const normalized = raw.replace(/-/g, '_').replace(/\s+/g, '_').toLowerCase();
   if (ACTION_LABELS[raw]) return ACTION_LABELS[raw];
   if (ACTION_LABELS[normalized]) return ACTION_LABELS[normalized];
+  // also try original lowercased with spaces kept as key
+  const spacedKey = raw.toLowerCase().replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
+  if (ACTION_LABELS[spacedKey]) return ACTION_LABELS[spacedKey];
 
+  // e.g. single_session.create or single.session.create
   const verbs: Record<string, string> = {
     create: 'ایجاد',
     update: 'ویرایش',
@@ -129,6 +142,7 @@ function actionLabel(action?: string | null) {
     check_out: 'ثبت خروج',
     reply: 'پاسخ',
     refund: 'استرداد',
+    purchase: 'خرید',
   };
 
   if (normalized.includes('.')) {
@@ -137,10 +151,12 @@ function actionLabel(action?: string | null) {
     const entity = parts.slice(0, -1).join('_');
     const entityFa = ENTITY_LABELS[entity] || ENTITY_LABELS[parts[0]] || entity.replace(/_/g, ' ');
     const verbFa = verbs[verb] || verb;
+    // Prefer natural order: verb + entity for create/update/delete
     if (verbs[verb]) return `${verbFa} ${entityFa}`;
     return `${entityFa} ${verbFa}`;
   }
 
+  // e.g. single_session_create
   for (const [v, vFa] of Object.entries(verbs)) {
     if (normalized.endsWith('_' + v) || normalized.endsWith(v)) {
       const entity = normalized.replace(new RegExp('_?' + v + '$'), '');
@@ -149,7 +165,30 @@ function actionLabel(action?: string | null) {
     }
   }
 
+  // plain entity tokens
   if (ENTITY_LABELS[normalized]) return ENTITY_LABELS[normalized];
+
+  // last resort: replace known English phrases inside the string
+  let pretty = raw;
+  const phraseMap: [RegExp, string][] = [
+    [/single[\s_-]*session/gi, 'جلسه تکی'],
+    [/\bcreate\b/gi, 'ایجاد'],
+    [/\bupdate\b/gi, 'ویرایش'],
+    [/\bdelete\b/gi, 'حذف'],
+    [/\bpurchase\b/gi, 'خرید'],
+    [/\brefund\b/gi, 'استرداد'],
+    [/\battendance\b/gi, 'حضور'],
+    [/\btransaction\b/gi, 'تراکنش'],
+    [/\bpayment\b/gi, 'پرداخت'],
+    [/\bcustomer\b/gi, 'عضو'],
+    [/\bmember\b/gi, 'عضو'],
+    [/\bcoach\b/gi, 'مربی'],
+    [/\bemployee\b/gi, 'کارمند'],
+  ];
+  for (const [re, fa] of phraseMap) {
+    pretty = pretty.replace(re, fa);
+  }
+  if (pretty !== raw) return pretty.trim();
 
   return raw;
 }
@@ -157,6 +196,7 @@ function actionLabel(action?: string | null) {
 function objectTypeLabel(t?: string | null) {
   if (!t) return '—';
   if (OBJECT_TYPE_LABELS[t]) return OBJECT_TYPE_LABELS[t];
+  // try PascalCase from snake_case: single_session -> SingleSession
   const pascal = String(t)
     .split(/[_\s-]+/)
     .filter(Boolean)
@@ -186,7 +226,7 @@ export const AuditLogsPage: React.FC = () => {
     setError(null);
     try {
       const list = await auditService.list(gymId);
-      setItems(list || []);
+      setItems((list || []).filter((x) => x && x.id != null));
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'خطا در دریافت گزارش فعالیت');
     } finally {
@@ -204,7 +244,7 @@ export const AuditLogsPage: React.FC = () => {
     return items.filter((r) => {
       const a = actionLabel(r.action).toLowerCase();
       const o = objectTypeLabel(r.object_type).toLowerCase();
-      const u = String(r.user_name || '').toLowerCase();
+      const u = (r.user_name || 'سیستم').toLowerCase();
       const repr = String(r.object_repr || '').toLowerCase();
       return a.includes(q) || o.includes(q) || u.includes(q) || repr.includes(q) || String(r.action || '').toLowerCase().includes(q);
     });
@@ -212,47 +252,44 @@ export const AuditLogsPage: React.FC = () => {
 
   const columns: Column<AuditLog>[] = [
     { key: 'action', header: 'عملیات', render: (r) => <span className="text-ink text-sm font-medium">{actionLabel(r.action)}</span> },
-    { key: 'object_type', header: 'نوع', render: (r) => <span className="text-sm text-muted">{objectTypeLabel(r.object_type)}</span> },
-    { key: 'object_repr', header: 'مورد', render: (r) => <span className="text-sm text-ink truncate max-w-[14rem] inline-block">{objectLabel(r)}</span> },
-    { key: 'user_name', header: 'کاربر', render: (r) => <span className="text-sm text-muted">{r.user_name || '—'}</span> },
-    { key: 'created_at', header: 'زمان', render: (r) => <span className="text-xs text-muted tabular-nums">{r.created_at ? formatJalaliDateTime(r.created_at) : '—'}</span> },
+    { key: 'user_name', header: 'کاربر', render: (r) => <span className="text-secondary text-sm">{r.user_name || 'سیستم'}</span> },
+    { key: 'object_type', header: 'نوع', render: (r) => <span className="text-secondary text-sm">{objectTypeLabel(r.object_type)}</span> },
+    { key: 'object_id', header: 'مورد', render: (r) => <span className="text-muted text-xs">{objectLabel(r)}</span> },
+    {
+      key: 'created_at',
+      header: 'زمان',
+      render: (r) => (
+        <span className="text-muted text-xs tabular-nums">{r.created_at ? formatJalaliDateTime(r.created_at) : '—'}</span>
+      ),
+    },
   ];
 
-  if (!hasGym) return <NoGymSelected />;
+  if (!hasGym) {
+    return (
+      <div className="space-y-6">
+        <Header title="گزارش فعالیت" />
+        <NoGymSelected />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      <Header
-        title="گزارش فعالیت"
-        subtitle="سابقه اقدامات انجام‌شده در پنل باشگاه"
-        actions={
-          <button
-            type="button"
-            onClick={load}
-            disabled={loading}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl border border-border text-secondary hover:bg-surface-hover"
-          >
-            بروزرسانی
-          </button>
-        }
-      />
-
+      <Header title="گزارش فعالیت" subtitle="سابقه عملیات انجام‌شده در باشگاه" onQuickAction={load} quickActionLabel="بروزرسانی" />
       <input
         type="search"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="جستجو در عملیات، نوع یا کاربر..."
-        className="w-full sm:max-w-md rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+        placeholder="جستجو در عملیات، کاربر یا نوع..."
+        className="w-full rounded-xl border border-border bg-input px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
       />
-
+      {loading && !items.length && <LoadingBlock />}
       {error && <ErrorBlock message={error} onRetry={load} />}
-
-      {loading ? (
-        <LoadingBlock />
-      ) : !error && filtered.length === 0 ? (
-        <EmptyState title="فعالیتی ثبت نشده" description={items.length ? 'با جستجوی فعلی نتیجه‌ای نیست.' : 'هنوز رویدادی از اقدامات ثبت نشده است.'} />
-      ) : (
-        <DataTable columns={columns} data={filtered} rowKey={(r) => r.id} loading={false} />
+      {!loading && !error && filtered.length === 0 && (
+        <EmptyState title="رکوردی یافت نشد" description={items.length ? 'با جستجوی فعلی نتیجه‌ای نیست.' : 'هنوز فعالیتی ثبت نشده است.'} />
+      )}
+      {!error && filtered.length > 0 && (
+        <DataTable columns={columns} data={filtered} rowKey={(r) => r.id} loading={loading} />
       )}
     </div>
   );
