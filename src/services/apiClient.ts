@@ -1,6 +1,10 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-export const API_BASE_URL = 'https://fitopiaapi.pythonanywhere.com/api';
+/** Build-time override via Vite env; falls back to production API */
+export const API_BASE_URL =
+  (typeof import.meta !== 'undefined' &&
+    (import.meta as ImportMeta & { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL) ||
+  'https://fitopiaapi.pythonanywhere.com/api';
 const ACCESS_KEY = 'fitopia_access_token';
 const REFRESH_KEY = 'fitopia_refresh_token';
 

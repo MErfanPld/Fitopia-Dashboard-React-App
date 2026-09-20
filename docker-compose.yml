@@ -1,0 +1,18 @@
+services:
+  fitopia-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://fitopiaapi.pythonanywhere.com/api}
+    image: fitopia-web:latest
+    container_name: fitopia-web
+    ports:
+      - "${HOST_PORT:-80}:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
