@@ -22,6 +22,7 @@ import { AuditLogsPage } from './pages/audit/AuditLogsPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { GuidePage } from './pages/GuidePage';
 import { PrivacyPage } from './pages/PrivacyPage';
+import { FitopiaUsersPage } from './pages/fitopia/FitopiaUsersPage';
 
 export default function App() {
   return (
@@ -41,6 +42,7 @@ export default function App() {
                 <Route path="/prices" element={<PricesPage />} />
                 <Route path="/courses" element={<CoursesPage />} />
                 <Route path="/attendance" element={<AttendancePage />} />
+                <Route path="/fitopia-users" element={<FitopiaUsersPage />} />
                 <Route path="/sessions" element={<SessionsPage />} />
                 <Route path="/finance" element={<FinancePage />} />
                 <Route path="/finance/transactions" element={<FinancePage />} />
