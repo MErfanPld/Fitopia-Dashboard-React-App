@@ -6,6 +6,7 @@ import { DataTable, Column } from '../../components/common/DataTable';
 import { Modal } from '../../components/common/Modal';
 import { FormField } from '../../components/common/FormField';
 import { StatCard } from '../../components/common/StatCard';
+import { TokenVerifyPanel } from '../../components/common/TokenVerifyPanel';
 import { EmptyState, ErrorBlock, LoadingBlock, NoGymSelected } from '../../components/common/EmptyState';
 import { useGymScoped } from '../../hooks/useGymScoped';
 import { useUI } from '../../context/UIContext';
@@ -199,6 +200,16 @@ export const AttendancePage: React.FC = () => {
           )}
         </div>
       } />
+
+      {gymId != null && gymId > 0 && (
+        <TokenVerifyPanel
+          gymId={gymId}
+          compact
+          onAdmitted={async () => {
+            await load();
+          }}
+        />
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard title="امروز" value={String(stats?.today_visits ?? '—')} icon={CalendarDays} accent="primary" />
