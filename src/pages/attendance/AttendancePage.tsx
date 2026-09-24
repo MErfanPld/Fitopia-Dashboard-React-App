@@ -17,22 +17,58 @@ import type { AttendanceStats, GymMember, GymVisit, Sport } from '../../types/ap
 import { formatJalaliDateTime } from '../../utils/jalaliUtils';
 
 const METHOD_LABELS: Record<string, string> = {
-  qr: 'QR', token: 'توکن', manual: 'دستی', membership: 'عضویت',
+  qr: 'QR',
+  token: 'توکن',
+  manual: 'دستی',
+  membership: 'عضویت',
+  single_session: 'جلسه تکی',
+  fitopia_token: 'توکن',
 };
 const SOURCE_LABELS: Record<string, string> = {
-  token: 'توکن فیتوپیا', direct: 'ثبت مستقیم', qr: 'QR', manual: 'دستی',
-  membership: 'عضویت', single_session: 'جلسه تکی',
+  token: 'توکن فیتوپیا',
+  direct: 'ثبت مستقیم',
+  qr: 'QR',
+  manual: 'دستی',
+  membership: 'عضویت',
+  single_session: 'جلسه تکی',
+  fitopia_token: 'توکن فیتوپیا',
 };
-function methodLabel(m?: string | null) { return m ? METHOD_LABELS[m] || m : '—'; }
-function sourceLabel(s?: string | null) { return s ? SOURCE_LABELS[s] || s : '—'; }
+function methodLabel(m?: string | null) {
+  if (!m) return '—';
+  const key = String(m).toLowerCase().replace(/-/g, '_');
+  return METHOD_LABELS[key] || METHOD_LABELS[m] || m;
+}
+function sourceLabel(s?: string | null) {
+  if (!s) return '';
+  const key = String(s).toLowerCase().replace(/-/g, '_');
+  return SOURCE_LABELS[key] || SOURCE_LABELS[s] || s;
+}
 function formatMoney(n?: number | null) {
   if (n == null || Number.isNaN(Number(n))) return '—';
   return `${Number(n).toLocaleString('fa-IR')} تومان`;
 }
 function visitPersonName(v: GymVisit): string {
-  if (v.customer_name) return v.customer_name;
-  if (v.guest_name) return v.guest_name;
-  return '—';
+  return (
+    v.customer_name ||
+    v.member_name ||
+    v.user_name ||
+    v.full_name ||
+    v.user?.full_name ||
+    v.guest_name ||
+    (v.token_code ? `توکن ${v.token_code}` : '') ||
+    (v.customer != null ? `عضو #${v.customer}` : '') ||
+    '—'
+  );
+}
+function visitPhone(v: GymVisit): string {
+  return (
+    v.guest_phone ||
+    v.phone ||
+    v.phone_number ||
+    v.user?.phone_number ||
+    v.user?.phone ||
+    ''
+  );
 }
 
 export const AttendancePage: React.FC = () => {
@@ -94,9 +130,10 @@ export const AttendancePage: React.FC = () => {
     if (q) {
       rows = rows.filter((r) => {
         const name = visitPersonName(r).toLowerCase();
-        const phone = String(r.guest_phone || '').toLowerCase();
-        const method = methodLabel(r.method).toLowerCase();
-        return name.includes(q) || phone.includes(q) || method.includes(q);
+        const phone = visitPhone(r).toLowerCase();
+        const method = methodLabel(r.method as string).toLowerCase();
+        const token = String(r.token_code || '').toLowerCase();
+        return name.includes(q) || phone.includes(q) || method.includes(q) || token.includes(q);
       });
     }
     return rows;
@@ -148,19 +185,45 @@ export const AttendancePage: React.FC = () => {
   const columns: Column<GymVisit>[] = [
     {
       key: 'person', header: 'فرد',
+      render: (r) => {
+        const phone = visitPhone(r);
+        const name = visitPersonName(r);
+        return (
+          <div className="min-w-0">
+            <p className="font-medium text-ink truncate">{name}</p>
+            {phone ? (
+              <p className="text-[11px] text-muted tabular-nums">{phone}</p>
+            ) : r.token_code ? (
+              <p className="text-[11px] text-muted">کد {String(r.token_code)}</p>
+            ) : r.customer != null ? (
+              <p className="text-[11px] text-muted">عضو باشگاه</p>
+            ) : null}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'sport',
+      header: 'رشته',
       render: (r) => (
-        <div className="min-w-0">
-          <p className="font-medium text-ink truncate">{visitPersonName(r)}</p>
-          {r.guest_phone ? <p className="text-[11px] text-muted tabular-nums">{r.guest_phone}</p>
-            : r.customer != null ? <p className="text-[11px] text-muted">عضو باشگاه</p> : null}
-        </div>
+        <span className="text-sm text-muted">
+          {r.sport_name || (r.sport != null ? sportNameById.get(Number(r.sport)) || `#${r.sport}` : '—')}
+        </span>
       ),
     },
-    { key: 'sport', header: 'رشته', render: (r) => <span className="text-sm text-muted">{r.sport != null ? sportNameById.get(r.sport) || '—' : '—'}</span> },
-    { key: 'check_in_at', header: 'ورود', render: (r) => <span className="text-xs text-muted tabular-nums">{r.check_in_at ? formatJalaliDateTime(r.check_in_at) : '—'}</span> },
-    { key: 'check_out_at', header: 'خروج', render: (r) => <span className="text-xs text-muted tabular-nums">{r.check_out_at ? formatJalaliDateTime(r.check_out_at) : '—'}</span> },
-    { key: 'method', header: 'روش', render: (r) => <span className="text-xs text-secondary">{methodLabel(r.method)}{r.source ? ` · ${sourceLabel(r.source)}` : ''}</span> },
-    { key: 'price', header: 'مبلغ', render: (r) => <span className="text-sm tabular-nums text-muted">{formatMoney(r.price)}</span> },
+    { key: 'check_in_at', header: 'ورود', render: (r) => <span className="text-xs text-muted tabular-nums">{r.check_in_at ? formatJalaliDateTime(String(r.check_in_at)) : '—'}</span> },
+    { key: 'check_out_at', header: 'خروج', render: (r) => <span className="text-xs text-muted tabular-nums">{r.check_out_at ? formatJalaliDateTime(String(r.check_out_at)) : '—'}</span> },
+    {
+      key: 'method',
+      header: 'روش',
+      render: (r) => {
+        const m = methodLabel(r.method as string);
+        const s = sourceLabel(r.source as string);
+        const label = s && s !== m ? `${m} · ${s}` : m;
+        return <span className="text-xs text-secondary">{label}</span>;
+      },
+    },
+    { key: 'price', header: 'مبلغ', render: (r) => <span className="text-sm tabular-nums text-muted">{formatMoney(r.price as number)}</span> },
     {
       key: 'is_open', header: 'وضعیت',
       render: (r) => (
