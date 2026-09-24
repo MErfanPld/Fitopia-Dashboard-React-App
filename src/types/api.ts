@@ -132,8 +132,13 @@ export interface GymVisit {
   id: number;
   gym?: number;
   customer?: number | null;
+  customer_id?: number | null;
   customer_name?: string | null;
+  member_name?: string | null;
+  user_name?: string | null;
+  full_name?: string | null;
   sport?: number | null;
+  sport_name?: string | null;
   price?: number | null;
   source?: VisitSource;
   method?: VisitMethod;
@@ -143,7 +148,18 @@ export interface GymVisit {
   registered_by?: number | null;
   guest_name?: string | null;
   guest_phone?: string | null;
+  phone?: string | null;
+  phone_number?: string | null;
+  token_code?: string | null;
+  user?: {
+    id?: number;
+    full_name?: string | null;
+    phone_number?: string | null;
+    phone?: string | null;
+    username?: string | null;
+  } | null;
   created_at?: string;
+  [key: string]: unknown;
 }
 
 export interface AttendanceStats {
